@@ -166,7 +166,7 @@ async def auth_middleware(request: Request, call_next):
 
 # ─── Mount static (SPA) ───────────────────────────────────────────────────────
 
-app.mount("/static", StaticFiles(directory=Path(__file__).parent.parent / "static"), name="static")
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
@@ -285,7 +285,7 @@ def serve_note(path: str):
 @app.get("/")
 def index():
     """Serve the SPA."""
-    spa_file = Path(__file__).parent.parent / "static" / "index.html"
+    spa_file = Path(__file__).parent / "static" / "index.html"
     return FileResponse(spa_file)
 
 
