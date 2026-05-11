@@ -94,7 +94,6 @@ export function ContentArea({ tab }) {
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
     const currentTab = tabRef.current
 
-    // tab closed — clear content immediately
     if (!currentTab) {
       shadow.innerHTML = ''
       return
@@ -133,7 +132,7 @@ export function ContentArea({ tab }) {
         window.dispatchEvent(new CustomEvent('notes:navigate', { detail: href }))
       })
     })
-  }, [html])
+  }, [tab, html])
 
   if (!tab) {
     return (
