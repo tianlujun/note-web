@@ -96,8 +96,9 @@ export function SearchInput({ onResultClick }) {
                     {r.title || r.path}
                   </div>
                   {r.snippet && (
-                    <div className="text-xs truncate" style={{ color: 'var(--color-text-muted)', marginTop: 2 }}
-                      dangerouslySetInnerHTML={{ __html: r.snippet }} />
+                    <div className="text-xs truncate" style={{ color: 'var(--color-text-muted)', marginTop: 2 }}>
+                      <span dangerouslySetInnerHTML={{ __html: r.snippet }} />
+                    </div>
                   )}
                 </button>
               ))}

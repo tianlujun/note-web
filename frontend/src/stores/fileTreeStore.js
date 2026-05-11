@@ -4,8 +4,17 @@ export const useFileTreeStore = create((set, get) => ({
   files: [],       // flat list from API
   loading: false,
   error: null,
-  // Persisted expansion state
-  expandedDirs: JSON.parse(sessionStorage.getItem('notes_expanded') ?? 'null') ?? [],
+  // Persisted expansion state — safe even when sessionStorage key is absent
+  expandedDirs: (() => {
+    try {
+      const raw = sessionStorage.getItem('notes_expanded')
+      if (raw === null) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })(),
 
   setFiles: (files) => set({ files }),
 
@@ -14,7 +23,9 @@ export const useFileTreeStore = create((set, get) => ({
     const next = expandedDirs.includes(dir)
       ? expandedDirs.filter((d) => d !== dir)
       : [...expandedDirs, dir]
-    sessionStorage.setItem('notes_expanded', JSON.stringify(next))
+    try {
+      sessionStorage.setItem('notes_expanded', JSON.stringify(next))
+    } catch {}
     set({ expandedDirs: next })
   },
 

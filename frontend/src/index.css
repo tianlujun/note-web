@@ -5,10 +5,10 @@
 /* ─── Card-Based Design System ─────────────────────────────────────── */
 @layer base {
   :root {
-    /* ── Palette (Notion warm neutrals) ── */
-    --color-bg-page:       #FEFCF8;
-    --color-bg-card:       #FEFCF8;
-    --color-bg-sidebar:    #FEFCF8;
+    /* ── Palette (朱砂红 accent) ── */
+    --color-bg-page:       #ffffff;
+    --color-bg-card:       #ffffff;
+    --color-bg-sidebar:    #ffffff;
     --color-bg-hover:      #f6f5f4;
     --color-bg-active:     #efefee;
     --color-text-primary:   rgba(0,0,0,0.95);
@@ -78,13 +78,13 @@
   ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
 
-  ::selection { background: #C53030; color: #fff; }
+  ::selection { background: var(--color-accent); color: #fff; }
 
   :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
 
   code, pre { font-family: var(--font-mono); }
   pre { background: #f6f5f4; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-md); padding: var(--space-4); font-size: 13px; line-height: 1.6; overflow-x: auto; }
-  code:not(pre code) { background: #f6f5f4; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-sm); color: #C53030; padding: 1px 5px; font-size: 0.875em; }
+  code:not(pre code) { background: #f6f5f4; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-sm); color: var(--color-accent); padding: 1px 5px; font-size: 0.875em; }
 }
 
 /* ── Animations ── */
@@ -152,22 +152,19 @@
       top: 0;
       z-index: 50;
       width: 100vw;
+      min-width: 100vw;
       height: 100dvh;
       transform: translateX(0);
       transition: transform var(--duration-normal) var(--ease-out);
     }
     .sidebar.collapsed {
-      width: var(--sidebar-width);
-      min-width: var(--sidebar-width);
+      width: 100vw;
+      min-width: 100vw;
       transform: translateX(-100%);
     }
     .app-layout {
       flex-direction: column;
     }
-  }
-
-  /* Mobile backdrop */
-  @media (max-width: 768px) {
     .mobile-backdrop {
       display: block;
       position: fixed;
@@ -176,10 +173,6 @@
       z-index: 40;
       backdrop-filter: blur(2px);
     }
-  }
-
-  /* Mobile hamburger button */
-  @media (max-width: 768px) {
     .mobile-hamburger {
       display: flex;
       position: fixed;
@@ -196,6 +189,23 @@
       justify-content: center;
       cursor: pointer;
       color: var(--color-text-secondary);
+    }
+    html, body { height: 100%; overflow: hidden; }
+    #root { height: 100%; overflow: hidden; }
+    .content-scroll {
+      padding: var(--space-4);
+      padding-top: 64px;
+      height: 100dvh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    .note-card {
+      padding: var(--space-5);
+    }
+    .flex-col {
+      height: 100dvh;
+      overflow: hidden;
     }
   }
 
@@ -270,27 +280,6 @@
     padding: var(--space-6);
   }
 
-  @media (max-width: 768px) {
-    html, body { height: 100%; overflow: hidden; }
-    #root { height: 100%; overflow: hidden; }
-
-    .content-scroll {
-      padding: var(--space-4);
-      padding-top: 64px; /* space for hamburger button */
-      height: 100dvh;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-    }
-    .note-card {
-      padding: var(--space-5);
-    }
-    .flex-col {
-      height: 100dvh;
-      overflow: hidden;
-    }
-  }
-
   /* Shadow DOM note content — prevent wide elements from causing page-level scroll */
   .content-scroll > * {
     overflow-x: hidden;
@@ -318,16 +307,16 @@
   .note-card p { margin: 0.65em 0; }
   .note-card ul, .note-card ol { padding-left: 1.5em; margin: 0.6em 0; }
   .note-card li { margin: 0.25em 0; }
-  .note-card blockquote { border-left: 3px solid #C53030; background: #FFF5F5; border-radius: 0 4px 4px 0; margin: 1em 0; padding: 0.5em 1em; color: var(--color-text-secondary); }
+  .note-card blockquote { border-left: 3px solid var(--color-accent); background: var(--color-accent-light); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 1em 0; padding: 0.5em 1em; color: var(--color-text-secondary); }
   .note-card pre { background: #f6f5f4; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-md); padding: var(--space-4); font-size: 13px; line-height: 1.6; overflow-x: auto; }
   .note-card code { font-family: var(--font-mono); }
-  .note-card code:not(pre code) { background: #f6f5f4; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-sm); color: #C53030; padding: 1px 5px; font-size: 0.875em; }
+  .note-card code:not(pre code) { background: #f6f5f4; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-sm); color: var(--color-accent); padding: 1px 5px; font-size: 0.875em; }
   .note-card table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
   .note-card th, .note-card td { border: 1px solid rgba(0,0,0,0.1); padding: 6px 12px; }
   .note-card th { background: #f6f5f4; font-weight: 600; }
   .note-card hr { border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 1.5em 0; }
   .note-card img { border-radius: var(--radius-md); max-width: 100%; height: auto; }
-  .note-card a { color: #C53030; text-decoration: none; }
+  .note-card a { color: var(--color-accent); text-decoration: none; }
   .note-card a:hover { text-decoration: underline; }
 
   /* File tree items */
@@ -372,9 +361,34 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.07);
   }
   .tree-file-btn.active {
-    background: #FFF5F5;
-    color: #C53030;
+    background: var(--color-accent-light);
+    color: var(--color-accent);
     font-weight: 500;
+  }
+
+  /* react-accessible-treeview overrides */
+  .tree-view-root {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-2) var(--space-2);
+    list-style: none;
+    margin: 0;
+  }
+  .tree-branch-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+  .tree-node-group {
+    list-style: none;
+    padding-left: var(--space-4);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tree-leaf-list-item {
+    list-style: none;
   }
 
   /* Search input */
@@ -392,7 +406,7 @@
   }
   .search-input::placeholder { color: var(--color-text-muted); }
   .search-input:focus {
-    border-color: #C53030;
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(197,48,48,0.12);
   }
 
@@ -431,13 +445,13 @@
   .note-content h2 { font-size: 1.35em; font-weight: 600; margin: 1.5em 0 0.4em; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.25em; }
   .note-content h3 { font-size: 1.1em; font-weight: 600; margin: 1.2em 0 0.35em; }
   .note-content p  { margin: 0.65em 0; line-height: 1.65; }
-  .note-content a  { color: #C53030; text-decoration: none; }
+  .note-content a  { color: var(--color-accent); text-decoration: none; }
   .note-content a:hover { text-decoration: underline; }
   .note-content ul, .note-content ol { padding-left: 1.5em; margin: 0.6em 0; }
   .note-content li { margin: 0.25em 0; }
   .note-content blockquote {
-    border-left: 3px solid #C53030;
-    background: #FFF5F5;
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-accent-light);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     margin: 1em 0;
     padding: 0.5em 1em;

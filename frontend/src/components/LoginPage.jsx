@@ -76,7 +76,7 @@ export function LoginPage() {
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = 'var(--color-accent)'
-                e.target.style.boxShadow = '0 0 0 3px rgba(79,110,247,0.12)'
+                e.target.style.boxShadow = '0 0 0 3px rgba(197,48,48,0.12)'
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = 'var(--color-border)'
