@@ -91,18 +91,40 @@ def verify_token(credentials) -> bool:
 
 
 def build_tree(root: Path) -> list:
-    """Return flat list of HTML file paths under root."""
-    tree = []
-    for p in sorted(root.rglob("*")):
-        if p.is_file() and (p.suffix == ".html" or p.name == "_index.html"):
+    """Return nested tree of directories and files under root."""
+    def recurse(path: Path, prefix: str = "") -> dict:
+        node = {
+            "name": path.name,
+            "path": prefix,
+            "type": "dir",
+            "children": [],
+        }
+        children = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+        for p in children:
             rel = p.relative_to(root).as_posix()
-            tree.append({
-                "path": rel,
-                "depth": len(rel.split("/")) - 1,
+            if p.is_dir():
+                node["children"].append(recurse(p, rel))
+            elif p.is_file() and (p.suffix == ".html" or p.name == "_index.html"):
+                node["children"].append({
+                    "name": p.name,
+                    "path": rel,
+                    "type": "file",
+                    "is_dir_index": p.name == "_index.html",
+                })
+        return node
+
+    root_children = []
+    for p in sorted(root.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+        if p.is_dir():
+            root_children.append(recurse(p, p.name))
+        elif p.is_file() and (p.suffix == ".html" or p.name == "_index.html"):
+            root_children.append({
                 "name": p.name,
+                "path": p.name,
+                "type": "file",
                 "is_dir_index": p.name == "_index.html",
             })
-    return tree
+    return root_children
 
 
 def get_link_index(root: Path) -> dict:

@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 
 export const useFileTreeStore = create((set, get) => ({
-  files: [],       // flat list from API
+  tree: [],        // nested tree from API
   loading: false,
   error: null,
-  // Persisted expansion state — safe even when sessionStorage key is absent
+  // Persisted expansion state — stored as full dir paths
   expandedDirs: (() => {
     try {
       const raw = sessionStorage.getItem('notes_expanded')
@@ -16,21 +16,20 @@ export const useFileTreeStore = create((set, get) => ({
     }
   })(),
 
-  setFiles: (files) => set({ files }),
+  setTree: (tree) => set({ tree }),
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error }),
 
-  toggleDir: (dir) => {
+  toggleDir: (dirPath) => {
     const { expandedDirs } = get()
-    const next = expandedDirs.includes(dir)
-      ? expandedDirs.filter((d) => d !== dir)
-      : [...expandedDirs, dir]
+    const next = expandedDirs.includes(dirPath)
+      ? expandedDirs.filter((d) => d !== dirPath)
+      : [...expandedDirs, dirPath]
     try {
       sessionStorage.setItem('notes_expanded', JSON.stringify(next))
     } catch {}
     set({ expandedDirs: next })
   },
 
-  isExpanded: (dir) => get().expandedDirs.includes(dir),
-
-  setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error }),
+  isExpanded: (dirPath) => get().expandedDirs.includes(dirPath),
 }))
