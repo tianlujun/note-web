@@ -15,8 +15,6 @@ export function LoginPage() {
     setError('')
     try {
       await api.login(value.trim())
-      // Store as Bearer token in memory (for Agent-style calls)
-      // Session cookie handles human users
       setToken(value.trim())
     } catch (err) {
       setError(err.message === 'Unauthorized' ? 'Invalid token' : err.message)
@@ -26,16 +24,11 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center p-base">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-xs flex flex-col gap-md"
-      >
-        <div className="text-center mb-lg">
-          <h1 className="text-xl font-semibold mb-xs">Note Web</h1>
-          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            Enter your access token
-          </p>
+    <div style={styles.root}>
+      <form style={styles.form} onSubmit={handleSubmit}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Note Web</h1>
+          <p style={styles.subtitle}>Enter your access token</p>
         </div>
 
         <input
@@ -45,33 +38,18 @@ export function LoginPage() {
           placeholder="Bearer token"
           autoFocus
           disabled={loading}
-          className="w-full px-md py-sm border rounded"
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 14,
-            background: 'var(--color-bg-secondary)',
-            borderColor: 'var(--color-border)',
-            color: 'var(--color-text-primary)',
-          }}
+          style={styles.input}
         />
 
-        {error && (
-          <p className="text-sm" style={{ color: '#ef4444', margin: 0 }}>
-            {error}
-          </p>
-        )}
+        {error && <p style={styles.error}>{error}</p>}
 
         <button
           type="submit"
           disabled={loading || !value.trim()}
-          className="w-full py-sm rounded text-sm font-medium"
           style={{
-            background: loading ? 'var(--color-accent-hover)' : 'var(--color-accent)',
-            color: 'var(--color-text-inverse)',
+            ...styles.button,
             opacity: loading ? 0.7 : 1,
             cursor: loading ? 'not-allowed' : 'pointer',
-            border: 'none',
-            transition: 'opacity var(--duration-fast)',
           }}
         >
           {loading ? 'Signing in…' : 'Sign In'}
@@ -79,4 +57,66 @@ export function LoginPage() {
       </form>
     </div>
   )
+}
+
+const styles = {
+  root: {
+    minHeight: '100dvh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px',
+    background: 'var(--color-bg-primary)',
+    fontFamily: 'var(--font-sans)',
+  },
+  form: {
+    width: '100%',
+    maxWidth: '320px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '8px',
+  },
+  title: {
+    fontSize: '20px',
+    fontWeight: 600,
+    margin: '0 0 4px 0',
+    color: 'var(--color-text-primary)',
+  },
+  subtitle: {
+    fontSize: '14px',
+    margin: 0,
+    color: 'var(--color-text-secondary)',
+  },
+  input: {
+    width: '100%',
+    padding: '8px 12px',
+    fontSize: '14px',
+    fontFamily: 'var(--font-mono)',
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '6px',
+    color: 'var(--color-text-primary)',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  error: {
+    fontSize: '14px',
+    margin: 0,
+    color: '#ef4444',
+  },
+  button: {
+    width: '100%',
+    padding: '8px 12px',
+    fontSize: '14px',
+    fontWeight: 500,
+    background: 'var(--color-accent)',
+    color: 'var(--color-text-inverse)',
+    border: 'none',
+    borderRadius: '6px',
+    transition: 'opacity 0.15s',
+  },
 }
