@@ -57,7 +57,7 @@ export function ContentArea({ tab }) {
     setError(null)
     setHtml('')
 
-    fetch(`${BASE}/api/file/${encodeURIComponent(tab.path)}`, {
+    fetch(`${BASE}/notes/${tab.path}`, {
       headers: {
         ...(useAuthStore.getState().token
           ? { Authorization: `Bearer ${useAuthStore.getState().token}` }
