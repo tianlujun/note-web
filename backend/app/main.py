@@ -145,6 +145,7 @@ async def auth_middleware(request: Request, call_next):
     if (
         path in ("/health", "/favicon.ico")
         or path.startswith("/static")
+        or path.startswith("/assets")
         or path == "/api/login"
         or path == "/"
     ):
