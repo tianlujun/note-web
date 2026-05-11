@@ -36,9 +36,9 @@ export function FileTree({ onFileOpen }) {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-xs p-sm">
+      <div className="flex flex-col gap-xs p-xs">
         {[80, 60, 90, 70, 55].map((w, i) => (
-          <div key={i} className="skeleton" style={{ height: 20, width: `${w}%` }} />
+          <div key={i} className="skeleton" style={{ height: 22, width: `${w}%`, borderRadius: 8 }} />
         ))}
       </div>
     )
@@ -53,9 +53,9 @@ export function FileTree({ onFileOpen }) {
   }
 
   return (
-    <nav className="flex flex-col gap-xs p-sm overflow-y-auto" style={{ flex: 1 }}>
+    <nav className="flex flex-col gap-xs" style={{ flex: 1 }}>
       {groups.length === 0 && (
-        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)', padding: '8px 12px' }}>
           No notes yet
         </p>
       )}
@@ -66,50 +66,44 @@ export function FileTree({ onFileOpen }) {
           <div key={group}>
             <button
               onClick={() => toggleDir(group)}
-              className="w-full flex items-center gap-xs py-xs px-xs text-sm rounded hover:bg-[var(--color-bg-tertiary)] text-left"
-              style={{ border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)' }}
+              className="tree-group-btn"
             >
               <svg
-                width="12"
-                height="12"
+                width="13"
+                height="13"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
+                strokeLinecap="round"
                 style={{
                   transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform var(--duration-fast)',
+                  transition: 'transform 0.12s',
                   flexShrink: 0,
+                  color: 'var(--color-text-muted)',
                 }}
               >
                 <path d="m9 18 6-6-6-6" />
               </svg>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ flexShrink: 0, color: 'var(--color-text-secondary)' }}>
                 {expanded ? (
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                 ) : (
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                 )}
               </svg>
-              <span className="truncate font-medium">{group}</span>
+              <span className="truncate">{group}</span>
             </button>
 
             {expanded && (
-              <div className="ml-md flex flex-col gap-xs">
+              <div className="flex flex-col gap-xs" style={{ marginTop: 2 }}>
                 {groupFilesList.map((f) => {
                   const isActive = tabs.find((t) => t.id === activeTabId)?.path === f.path
                   return (
                     <button
                       key={f.path}
                       onClick={() => onFileOpen(f)}
-                      className="w-full flex items-center gap-xs py-xs px-xs text-sm rounded text-left"
-                      style={{
-                        background: isActive ? 'var(--color-accent)' : 'transparent',
-                        color: isActive ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: isActive ? 500 : 400,
-                      }}
+                      className={`tree-file-btn${isActive ? ' active' : ''}`}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

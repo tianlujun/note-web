@@ -18,18 +18,8 @@ export function AppShell() {
     closeTab(id)
   }
 
-  // Listen for internal navigation events from ContentArea shadow DOM
-  function handleNavigate(e) {
-    const path = e.detail
-    const title = path.split('/').pop()
-    openTab({ path, title })
-  }
-
   return (
-    <div
-      className="flex flex-row"
-      style={{ height: '100dvh', overflow: 'hidden' }}
-    >
+    <div className="app-layout">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}

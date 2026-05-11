@@ -11,51 +11,41 @@ export function Sidebar({ collapsed, onToggle, onFileOpen }) {
   }
 
   return (
-    <aside
-      className="flex flex-col border-r sidebar-transition"
-      style={{
-        width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
-        minWidth: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
-        height: '100dvh',
-        background: 'var(--color-bg-secondary)',
-        borderColor: 'var(--color-border)',
-        overflow: 'hidden',
-        flexShrink: 0,
-      }}
-    >
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Header */}
-      <div
-        className="flex items-center gap-sm px-sm border-b"
-        style={{
-          height: 48,
-          borderColor: 'var(--color-border)',
-          flexShrink: 0,
-        }}
-      >
+      <div className="sidebar-header">
         {!collapsed && (
-          <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
+          <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)', letterSpacing: '0.01em' }}>
             Notes
           </span>
         )}
         <button
           onClick={onToggle}
-          className="ml-auto flex-shrink-0 flex items-center justify-center rounded hover:bg-[var(--color-bg-tertiary)]"
-          style={{ width: 28, height: 28, border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+          className="ml-auto flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-[var(--color-bg-hover)]"
+          style={{ width: 30, height: 30, border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', transition: 'background 0.12s' }}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? '›' : '‹'}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            {collapsed ? (
+              <path d="m9 18 6-6-6-6" />
+            ) : (
+              <path d="m15 18-6-6 6-6" />
+            )}
+          </svg>
         </button>
       </div>
 
       {/* Search */}
       {!collapsed && (
-        <div className="px-sm py-sm" style={{ borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
-          <SearchInput onResultClick={handleSearchResult} />
+        <div className="sidebar-search">
+          <div className="relative">
+            <SearchInput onResultClick={handleSearchResult} />
+          </div>
         </div>
       )}
 
       {/* File tree */}
-      <div className="flex-1 overflow-hidden">
+      <div className="sidebar-tree">
         {!collapsed && <FileTree onFileOpen={onFileOpen} />}
       </div>
     </aside>

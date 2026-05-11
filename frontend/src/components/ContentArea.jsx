@@ -4,11 +4,40 @@ import { useAuthStore } from '../stores/authStore'
 
 const BASE = ''
 
-/** Inject a <style> reset into Shadow DOM */
-const SHADOW_RESET = `
+/** Inject typography + card styles into Shadow DOM */
+const SHADOW_STYLES = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: "Inter", system-ui, sans-serif; font-size: 15px; line-height: 1.6; color: var(--color-text-primary, #0d0d0d); background: transparent; }
-a { color: var(--color-accent, #6366f1); }
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-primary, #111827);
+  background: transparent;
+}
+a { color: var(--color-accent, #4f6ef7); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.7em; font-weight: 700; margin: 0 0 0.6em; line-height: 1.25; }
+h2 { font-size: 1.3em;  font-weight: 650; margin: 1.4em 0 0.45em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+h3 { font-size: 1.1em;  font-weight: 600; margin: 1.2em 0 0.4em; }
+p  { margin: 0.7em 0; }
+ul, ol { padding-left: 1.5em; margin: 0.6em 0; }
+li { margin: 0.25em 0; }
+blockquote {
+  border-left: 3px solid #4f6ef7;
+  background: #eef1fe;
+  border-radius: 0 6px 6px 0;
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  color: #6b7280;
+}
+pre { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+code { font-family: "JetBrains Mono", monospace; }
+code:not(pre code) { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 6px; color: #4f6ef7; padding: 1px 5px; font-size: 0.875em; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+th, td { border: 1px solid #e5e7eb; padding: 6px 12px; }
+th { background: #f5f7fa; font-weight: 600; }
+hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
+img { border-radius: 10px; max-width: 100%; height: auto; }
 `
 
 export function ContentArea({ tab }) {
@@ -38,14 +67,12 @@ export function ContentArea({ tab }) {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.text()
       })
-      .then((text) => {
-        setHtml(text)
-      })
+      .then((text) => setHtml(text))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [tab?.path])
 
-  // Mount / update Shadow DOM
+  // Mount / update Shadow DOM with card wrapper
   useEffect(() => {
     if (!containerRef.current) return
     const host = containerRef.current
@@ -54,28 +81,30 @@ export function ContentArea({ tab }) {
 
     if (!html) return
 
-    const wrapper = document.createElement('div')
-    wrapper.className = 'note-content'
-    wrapper.innerHTML = html
+    const card = document.createElement('div')
+    card.className = 'note-card'
+
+    const content = document.createElement('div')
+    content.className = 'note-content'
+    content.innerHTML = html
 
     const style = document.createElement('style')
-    style.textContent = SHADOW_RESET
+    style.textContent = SHADOW_STYLES
 
-    shadow.appendChild(style)
-    shadow.appendChild(wrapper)
+    card.appendChild(style)
+    card.appendChild(content)
+    shadow.appendChild(card)
 
     // Intercept link clicks inside shadow DOM
     shadow.querySelectorAll('a').forEach((a) => {
       a.addEventListener('click', (e) => {
         const href = a.getAttribute('href')
         if (!href) return
-        // External links still work
         if (href.startsWith('http://') || href.startsWith('https://')) {
           e.preventDefault()
           window.open(href, '_blank', 'noopener')
           return
         }
-        // Relative links → navigate
         e.preventDefault()
         window.dispatchEvent(new CustomEvent('notes:navigate', { detail: href }))
       })
@@ -84,13 +113,13 @@ export function ContentArea({ tab }) {
 
   if (!tab) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--color-bg-primary)' }}>
-        <div className="text-center">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-md" style={{ color: 'var(--color-text-secondary)' }}>
+      <div className="content-scroll">
+        <div className="note-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--color-text-muted)', margin: '0 auto 16px' }}>
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
-          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>
             Open a note from the sidebar
           </p>
         </div>
@@ -100,26 +129,35 @@ export function ContentArea({ tab }) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col gap-sm p-lg" style={{ background: 'var(--color-bg-primary)' }}>
-        <div className="skeleton" style={{ height: 28, width: '40%' }} />
-        <div className="skeleton" style={{ height: 16, width: '90%' }} />
-        <div className="skeleton" style={{ height: 16, width: '75%' }} />
-        <div className="skeleton" style={{ height: 16, width: '85%' }} />
-        <div className="skeleton" style={{ height: 16, width: '60%' }} />
+      <div className="content-scroll">
+        <div className="note-card" style={{ padding: '32px 24px' }}>
+          <div className="skeleton" style={{ height: 28, width: '40%', marginBottom: 20 }} />
+          <div className="skeleton" style={{ height: 16, width: '90%', marginBottom: 10 }} />
+          <div className="skeleton" style={{ height: 16, width: '75%', marginBottom: 10 }} />
+          <div className="skeleton" style={{ height: 16, width: '85%', marginBottom: 10 }} />
+          <div className="skeleton" style={{ height: 16, width: '60%' }} />
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--color-bg-primary)' }}>
-        <div className="text-center">
-          <p className="mb-sm" style={{ color: '#ef4444' }}>Failed to load</p>
-          <p className="text-sm mb-md" style={{ color: 'var(--color-text-secondary)' }}>{error}</p>
+      <div className="content-scroll">
+        <div className="note-card" style={{ padding: '32px 24px', textAlign: 'center' }}>
+          <p style={{ color: '#ef4444', marginBottom: 8 }}>Failed to load</p>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginBottom: 16 }}>{error}</p>
           <button
             onClick={() => setError(null)}
-            className="px-md py-xs rounded text-sm"
-            style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', cursor: 'pointer' }}
+            style={{
+              padding: '7px 16px',
+              background: 'var(--color-bg-hover)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: 13,
+              color: 'var(--color-text-primary)',
+            }}
           >
             Retry
           </button>
@@ -131,8 +169,7 @@ export function ContentArea({ tab }) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto"
-      style={{ background: 'var(--color-bg-primary)' }}
+      className="content-scroll"
     />
   )
 }
