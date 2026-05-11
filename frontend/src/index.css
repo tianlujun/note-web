@@ -201,7 +201,6 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       display: flex;
-      align-items: center;
       justify-content: center;
     }
     .note-card {
@@ -288,7 +287,6 @@
     padding: var(--space-6);
     box-sizing: border-box;
     display: flex;
-    align-items: center;
     justify-content: center;
   }
 
