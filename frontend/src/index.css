@@ -278,11 +278,7 @@
     flex: 1;
     overflow: auto;
     padding: var(--space-6);
-  }
-
-  /* Shadow DOM note content — prevent wide elements from causing page-level scroll */
-  .content-scroll > * {
-    overflow-x: hidden;
+    box-sizing: border-box;
   }
 
   .note-card {
@@ -291,9 +287,6 @@
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
     padding: var(--space-8);
-    width: 100%;
-    max-width: var(--content-max);
-    margin: 0 auto;
     animation: fade-up 0.25s var(--ease-out) both;
     overflow-x: hidden;
     font-size: 16px;
