@@ -43,9 +43,13 @@ img { border-radius: 10px; max-width: 100%; height: auto; }
 
 export function ContentArea({ tab }) {
   const containerRef = useRef(null)
+  const tabRef = useRef(tab)
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Keep ref in sync with tab prop
+  tabRef.current = tab
 
   useEffect(() => {
     if (!tab) {
@@ -88,7 +92,8 @@ export function ContentArea({ tab }) {
     if (!containerRef.current) return
     const host = containerRef.current
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
-    if (!tab) {
+    const currentTab = tabRef.current
+    if (!currentTab) {
       shadow.innerHTML = ''
       return
     }
@@ -124,7 +129,7 @@ export function ContentArea({ tab }) {
         window.dispatchEvent(new CustomEvent('notes:navigate', { detail: href }))
       })
     })
-  }, [tab, html])
+  }, [html])
 
   if (!tab) {
     return (
