@@ -71,7 +71,7 @@ export function ContentArea({ tab }) {
       .then((text) => setHtml(text))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [tab?.path])
+  }, [tab])
 
   // Mount / update Shadow DOM with card wrapper
   useEffect(() => {
