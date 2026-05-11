@@ -93,13 +93,17 @@ export function ContentArea({ tab }) {
     const host = containerRef.current
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
     const currentTab = tabRef.current
+
+    // tab closed — clear content immediately
     if (!currentTab) {
       shadow.innerHTML = ''
       return
     }
-    shadow.innerHTML = ''
 
+    // no content yet — nothing to render
     if (!html) return
+
+    shadow.innerHTML = ''
 
     const card = document.createElement('div')
     card.className = 'note-card'
