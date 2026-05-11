@@ -201,9 +201,12 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
     }
     .note-card {
+      margin: auto;
       width: 100%;
       max-height: calc(100dvh - 80px);
       padding: var(--space-5);
@@ -287,7 +290,9 @@
     padding: var(--space-6);
     box-sizing: border-box;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .note-card {
