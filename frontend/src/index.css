@@ -53,28 +53,8 @@
     --content-max:      860px;
   }
 
-  /* ── Dark mode ── */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --color-bg-page:      #111115;
-      --color-bg-card:      #1a1a1f;
-      --color-bg-sidebar:   #1a1a1f;
-      --color-bg-hover:     #222228;
-      --color-bg-active:    #2a2a33;
-      --color-text-primary: #f3f4f6;
-      --color-text-secondary:#9ca3af;
-      --color-text-muted:   #6b7280;
-      --color-accent:        #6b8af8;
-      --color-accent-light:  #1e2640;
-      --color-accent-hover:  #8aa3fb;
-      --color-border:        #2e2e38;
-      --color-border-card:  rgba(255,255,255,0.07);
-      --color-shadow-card:   0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
-      --color-shadow-hover:  0 2px 8px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35);
-    }
-  }
-
   *, *::before, *::after { box-sizing: border-box; }
+  :root { color-scheme: light; }
 
   html { scroll-behavior: smooth; }
 
