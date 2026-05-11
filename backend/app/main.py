@@ -289,6 +289,31 @@ def index():
     return FileResponse(spa_file)
 
 
+@app.post("/api/sync-trigger")
+async def sync_trigger():
+    """Trigger rclone sync from TOS to local notes directory. Internal use only."""
+    import asyncio, subprocess
+
+    notes_path = os.environ.get("NOTES_PATH", "/root/notes-mvp")
+    cmd = ["rclone", "sync", "tos:tianlujun-default/notes-mvp", notes_path, "--quiet"]
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            return JSONResponse(
+                status_code=500,
+                content={"ok": False, "detail": stderr.decode() or "rclone failed"},
+            )
+        return JSONResponse({"ok": True, "triggered_at": datetime.utcnow().isoformat()})
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"ok": False, "detail": str(exc)})
+
+
 @app.get("/{path:path}")
 def catch_all(path: str):
     # Let FastAPI's static mount handle /static/... and /notes/...

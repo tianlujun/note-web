@@ -1,122 +1,81 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react'
+import { LoginPage } from './components/LoginPage'
+import { AppShell } from './components/AppShell'
+import { useAuthInit } from './hooks/useAuthInit'
+import { useAuthStore } from './stores/authStore'
+import { useTabStore } from './stores/tabStore'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const { authenticated } = useAuthInit()
+  const { token } = useAuthStore()
+  const { closeTab, setActiveTab, tabs, activeTabId } = useTabStore()
+  const [hydrated, setHydrated] = useState(false)
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  // Hydrate token from sessionStorage (for page refresh persistence)
+  useEffect(() => {
+    const stored = sessionStorage.getItem('notes_token')
+    if (stored && !token) {
+      useAuthStore.getState().setToken(stored)
+    }
+    setHydrated(true)
+  }, [])
 
-      <div className="ticks"></div>
+  // Persist token to sessionStorage
+  useEffect(() => {
+    if (token) sessionStorage.setItem('notes_token', token)
+  }, [token])
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  // Listen for internal navigation events from ContentArea
+  useEffect(() => {
+    function handler(e) {
+      const { openTab } = useTabStore.getState()
+      const path = e.detail
+      const title = path.split('/').pop()
+      openTab({ path, title })
+    }
+    window.addEventListener('notes:navigate', handler)
+    return () => window.removeEventListener('notes:navigate', handler)
+  }, [])
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  // Listen for unauthorized events (401 from API)
+  useEffect(() => {
+    function handler() {
+      const { clearToken } = useAuthStore.getState()
+      clearToken()
+      sessionStorage.removeItem('notes_token')
+    }
+    window.addEventListener('notes:unauthorized', handler)
+    return () => window.removeEventListener('notes:unauthorized', handler)
+  }, [])
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'Ctrl+w': () => {
+      const { activeTabId } = useTabStore.getState()
+      if (activeTabId) closeTab(activeTabId)
+    },
+    'Ctrl+Tab': () => {
+      const { tabs, activeTabId } = useTabStore.getState()
+      if (tabs.length < 2) return
+      const idx = tabs.findIndex((t) => t.id === activeTabId)
+      const next = tabs[(idx + 1) % tabs.length]
+      setActiveTab(next.id)
+    },
+    'Ctrl+Shift+Tab': () => {
+      const { tabs, activeTabId } = useTabStore.getState()
+      if (tabs.length < 2) return
+      const idx = tabs.findIndex((t) => t.id === activeTabId)
+      const prev = tabs[(idx - 1 + tabs.length) % tabs.length]
+      setActiveTab(prev.id)
+    },
+  })
+
+  if (!hydrated) return null
+
+  if (!authenticated && !token) {
+    return <LoginPage />
+  }
+
+  return <AppShell />
 }
-
-export default App
