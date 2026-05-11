@@ -31,10 +31,6 @@ export function FileTree({ onFileOpen }) {
   const { groups, rootFiles } = deriveGroups(files)
 
   useEffect(() => {
-    console.log('[FileTree] expandedDirs:', expandedDirs)
-  }, [expandedDirs])
-
-  useEffect(() => {
     if (files.length > 0) return
     setLoading(true)
     api.files()
