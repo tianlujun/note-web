@@ -2,71 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 
-const BASE = ''
-
-/** Inject typography + card styles into Shadow DOM */
-const SHADOW_STYLES = `
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.75;
-  color: var(--color-text-primary, #111827);
-  background: transparent;
-}
-a { color: var(--color-accent, #4f6ef7); text-decoration: none; }
-a:hover { text-decoration: underline; }
-h1 { font-size: 1.7em; font-weight: 700; margin: 0 0 0.6em; line-height: 1.25; }
-h2 { font-size: 1.3em;  font-weight: 650; margin: 1.4em 0 0.45em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
-h3 { font-size: 1.1em;  font-weight: 600; margin: 1.2em 0 0.4em; }
-p  { margin: 0.7em 0; }
-ul, ol { padding-left: 1.5em; margin: 0.6em 0; }
-li { margin: 0.25em 0; }
-blockquote {
-  border-left: 3px solid #4f6ef7;
-  background: #eef1fe;
-  border-radius: 0 6px 6px 0;
-  margin: 1em 0;
-  padding: 0.5em 1em;
-  color: #6b7280;
-}
-pre { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; }
-.note-card { overflow-x: hidden; }
-code { font-family: "JetBrains Mono", monospace; }
-code:not(pre code) { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 6px; color: #4f6ef7; padding: 1px 5px; font-size: 0.875em; }
-table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
-th, td { border: 1px solid #e5e7eb; padding: 6px 12px; }
-th { background: #f5f7fa; font-weight: 600; }
-hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
-img { border-radius: 10px; max-width: 100%; height: auto; }
-`
-
 export function ContentArea({ tab }) {
-  const containerRef = useRef(null)
-  const tabRef = useRef(tab)
-  const shadowRef = useRef(null)
+  const contentRef = useRef(null)
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Keep refs in sync with props
-  tabRef.current = tab
-
-  // Initialize Shadow DOM once
-  useEffect(() => {
-    if (!containerRef.current) return
-    const host = containerRef.current
-    if (!host.shadowRoot) {
-      const shadow = host.attachShadow({ mode: 'open' })
-      shadowRef.current = shadow
-    } else {
-      shadowRef.current = host.shadowRoot
-    }
-  }, [])
-
   // Fetch note content when tab changes
   useEffect(() => {
-    console.log('[ContentArea] first effect running, tab:', tab)
     if (!tab) {
       setHtml('')
       setError(null)
@@ -80,7 +23,7 @@ export function ContentArea({ tab }) {
     setError(null)
     setHtml('')
 
-    fetch(`${BASE}/notes/${tab.path}`, {
+    fetch(`/notes/${tab.path}`, {
       headers: {
         ...(useAuthStore.getState().token
           ? { Authorization: `Bearer ${useAuthStore.getState().token}` }
@@ -102,44 +45,27 @@ export function ContentArea({ tab }) {
     return () => controller.abort()
   }, [tab])
 
-  // Render / clear Shadow DOM
+  // Inject HTML into DOM and intercept links
   useEffect(() => {
-    const shadow = shadowRef.current
-    const currentTab = tabRef.current
-    console.log('[ContentArea] second effect', { currentTab, html: html?.slice(0, 50), htmlLength: html?.length })
+    const el = contentRef.current
+    if (!el) return
 
-    if (!currentTab) {
-      console.log('[ContentArea] clearing shadow DOM (no tab)')
-      if (shadow) shadow.innerHTML = ''
+    if (!tab) {
+      el.innerHTML = ''
       return
     }
 
-    if (!html) {
-      console.log('[ContentArea] second effect: no html yet, skipping')
-      return
-    }
+    if (!html) return
 
-    console.log('[ContentArea] rendering note, html length:', html.length)
-    if (!shadow) return
+    // Strip DOCTYPE/html/body wrapper — extract just the inner content
+    let body = html
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
+    if (bodyMatch) body = bodyMatch[1]
 
-    shadow.innerHTML = ''
+    el.innerHTML = body
 
-    const card = document.createElement('div')
-    card.className = 'note-card'
-
-    const content = document.createElement('div')
-    content.className = 'note-content'
-    content.innerHTML = html
-
-    const style = document.createElement('style')
-    style.textContent = SHADOW_STYLES
-
-    card.appendChild(style)
-    card.appendChild(content)
-    shadow.appendChild(card)
-
-    // Intercept link clicks inside shadow DOM
-    shadow.querySelectorAll('a').forEach((a) => {
+    // Intercept link clicks
+    el.querySelectorAll('a').forEach((a) => {
       a.addEventListener('click', (e) => {
         const href = a.getAttribute('href')
         if (!href) return
@@ -210,9 +136,8 @@ export function ContentArea({ tab }) {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="content-scroll"
-    />
+    <div className="content-scroll">
+      <div className="note-card" ref={contentRef} />
+    </div>
   )
 }

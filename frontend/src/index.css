@@ -222,7 +222,30 @@
     max-width: var(--content-max);
     margin: 0 auto;
     animation: fade-up 0.25s var(--ease-out) both;
+    overflow-x: hidden;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--color-text-primary, #111827);
   }
+  .note-card > * { max-width: 800px; }
+  .note-card h1 { font-size: 1.7em; font-weight: 700; margin: 0 0 0.6em; line-height: 1.25; }
+  .note-card h2 { font-size: 1.3em; font-weight: 650; margin: 1.4em 0 0.45em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+  .note-card h3 { font-size: 1.1em; font-weight: 600; margin: 1.2em 0 0.4em; }
+  .note-card p { margin: 0.7em 0; }
+  .note-card ul, .note-card ol { padding-left: 1.5em; margin: 0.6em 0; }
+  .note-card li { margin: 0.25em 0; }
+  .note-card blockquote { border-left: 3px solid #4f6ef7; background: #eef1fe; border-radius: 0 6px 6px 0; margin: 1em 0; padding: 0.5em 1em; color: #6b7280; }
+  .note-card pre { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .note-card code { font-family: "JetBrains Mono", monospace; }
+  .note-card code:not(pre code) { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 6px; color: #4f6ef7; padding: 1px 5px; font-size: 0.875em; }
+  .note-card table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  .note-card th, .note-card td { border: 1px solid #e5e7eb; padding: 6px 12px; }
+  .note-card th { background: #f5f7fa; font-weight: 600; }
+  .note-card hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
+  .note-card img { border-radius: 10px; max-width: 100%; height: auto; }
+  .note-card a { color: var(--color-accent, #4f6ef7); text-decoration: none; }
+  .note-card a:hover { text-decoration: underline; }
 
   /* File tree items */
   .tree-group-btn {
