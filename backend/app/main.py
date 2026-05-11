@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from app.config import ACCESS_TOKEN
+from backend.app.config import ACCESS_TOKEN
 
 # ─── Session store (in-memory) ─────────────────────────────────────────────────
 # Maps session_id -> { "expires": unix_ts }
