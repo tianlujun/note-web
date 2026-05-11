@@ -27,6 +27,10 @@ export const useTabStore = create((set, get) => ({
     if (activeTabId === id) {
       newActive = newTabs[Math.min(idx, newTabs.length - 1)]?.id ?? null
     }
+    // Defensive: if activeTabId points to a tab not in the list, clear it
+    if (newTabs.findIndex((t) => t.id === newActive) === -1) {
+      newActive = null
+    }
     set({ tabs: newTabs, activeTabId: newActive })
   },
 
