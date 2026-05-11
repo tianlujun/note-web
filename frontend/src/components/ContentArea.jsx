@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '../stores/authStore'
 
+const DEFAULT_WIDTH = 720
+
+function extractMeta(html) {
+  const m = html.match(/<meta[^>]+name=["']content-width["'][^>]+content=["']([^"']+)["'][^>]*>/i)
+  if (m) return parseInt(m[1], 10)
+  const m2 = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']content-width["'][^>]*>/i)
+  if (m2) return parseInt(m2[1], 10)
+  return null
+}
+
 function extractBody(html) {
   const m = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
   return m ? m[1] : html
@@ -8,6 +18,7 @@ function extractBody(html) {
 
 export function ContentArea({ tab }) {
   const [html, setHtml] = useState('')
+  const [contentWidth, setContentWidth] = useState(DEFAULT_WIDTH)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -19,6 +30,7 @@ export function ContentArea({ tab }) {
       setHtml('')
       setError(null)
       setLoading(false)
+      setContentWidth(DEFAULT_WIDTH)
       return
     }
 
@@ -26,6 +38,7 @@ export function ContentArea({ tab }) {
     setLoading(true)
     setError(null)
     setHtml('')
+    setContentWidth(DEFAULT_WIDTH)
 
     fetch(`/notes/${tab.path}`, {
       headers: {
@@ -40,7 +53,11 @@ export function ContentArea({ tab }) {
         return r.text()
       })
       .then((text) => {
-        if (tabRef.current?.id === tab.id) setHtml(text)
+        if (tabRef.current?.id === tab.id) {
+          const w = extractMeta(text)
+          if (w && w > 0) setContentWidth(w)
+          setHtml(text)
+        }
       })
       .catch((err) => {
         if (err.name !== 'AbortError') setError(err.message)
@@ -70,12 +87,23 @@ export function ContentArea({ tab }) {
     el.addEventListener('click', handler)
     return () => el.removeEventListener('click', handler)
   }, [html])
+
   if (!tab) { return null }
+
+  const halfW = contentWidth / 2
+  const cardStyle = {
+    position: 'fixed',
+    left: `calc(50vw - ${halfW}px)`,
+    width: contentWidth,
+    maxHeight: 'calc(100dvh - 120px)',
+    overflowY: 'auto',
+    boxSizing: 'border-box',
+  }
 
   if (loading) {
     return (
       <div className="content-scroll" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="note-card" style={{ padding: '32px 24px', margin: '0 auto', maxWidth: 720, boxSizing: 'border-box' }}>
+        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px', left: 'auto', width: 'auto', maxHeight: 'none', position: 'relative', overflowY: 'visible' }}>
           <div className="skeleton" style={{ height: 28, width: '40%', marginBottom: 20 }} />
           <div className="skeleton" style={{ height: 16, width: '90%', marginBottom: 10 }} />
           <div className="skeleton" style={{ height: 16, width: '75%', marginBottom: 10 }} />
@@ -89,7 +117,7 @@ export function ContentArea({ tab }) {
   if (error) {
     return (
       <div className="content-scroll" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="note-card" style={{ padding: '32px 24px', textAlign: 'center', margin: '0 auto' }}>
+        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px', textAlign: 'center', left: 'auto', width: 'auto', maxHeight: 'none', position: 'relative', overflowY: 'visible' }}>
           <p style={{ color: '#ef4444', marginBottom: 8 }}>Failed to load</p>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginBottom: 16 }}>{error}</p>
           <button
@@ -107,7 +135,7 @@ export function ContentArea({ tab }) {
     <div className="content-scroll" ref={containerRef}>
       <div
         className="note-card"
-        style={{ position: 'fixed', left: 'calc(50vw - 360px)', width: 720, boxSizing: 'border-box', maxHeight: 'calc(100dvh - 120px)', overflowY: 'auto' }}
+        style={cardStyle}
         dangerouslySetInnerHTML={{ __html: extractBody(html) }}
       />
     </div>
