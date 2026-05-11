@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Notes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-w: 260px;
+      --bg: #f8f8f8;
+      --surface: #fff;
+      --border: #e0e0e0;
+      --text: #1a1a1a;
+      --text-muted: #666;
+      --accent: #0066cc;
+      --accent-hover: #0052a3;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      display: flex;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      transition: width 0.2s ease, min-width 0.2s ease;
+    }
+
+    #sidebar.collapsed {
+      width: 48px;
+      min-width: 48px;
+    }
+
+    #sidebar.collapsed #sidebar-header h1 span,
+    #sidebar.collapsed #search-box,
+    #sidebar.collapsed #file-tree {
+      display: none;
+    }
+
+    #sidebar-header {
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    #sidebar-header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    #toggle-sidebar {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 6px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    #toggle-sidebar:hover { background: var(--bg); }
+
+    #search-box {
+      margin: 12px 12px 8px;
+    }
+
+    #search-box input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    #search-box input:focus {
+      border-color: var(--accent);
+    }
+
+    #file-tree {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 8px 16px;
+    }
+
+    .tree-item {
+      display: flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      text-decoration: none;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .tree-item:hover { background: var(--bg); }
+    .tree-item.active { background: #e8f0f8; color: var(--accent); }
+    .tree-item .icon { flex-shrink: 0; opacity: 0.6; }
+    .tree-item .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .tree-depth-1 { padding-left: 12px; }
+    .tree-depth-2 { padding-left: 24px; }
+    .tree-depth-3 { padding-left: 36px; }
+
+    .dir-entry { font-weight: 500; }
+
+    /* ── Main ── */
+    #main {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #toolbar {
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 49px;
+    }
+
+    #toolbar .crumb {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    #toolbar .crumb span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #toolbar .crumb .sep { opacity: 0.4; }
+
+    #toolbar .crumb a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    #toolbar .crumb a:hover { text-decoration: underline; }
+
+    #toolbar button {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    #toolbar button:hover { background: var(--bg); }
+
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px;
+    }
+
+    #content iframe {
+      width: 100%;
+      height: calc(100vh - 120px);
+      border: none;
+      background: #fff;
+      display: none;
+    }
+
+    #welcome {
+      color: var(--text-muted);
+      font-size: 15px;
+      padding-top: 60px;
+      text-align: center;
+    }
+
+    #welcome h2 { font-size: 20px; color: var(--text); margin-bottom: 8px; font-weight: 500; }
+
+    /* ── Search results ── */
+    #search-results {
+      display: none;
+    }
+
+    .search-result {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .search-result:hover { border-color: var(--accent); }
+
+    .search-result .title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .search-result .path {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .search-result .snippet {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ── Login overlay ── */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #login-box {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 36px 32px;
+      width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+
+    #login-box h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    #login-box p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    #login-box label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    #login-box input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    #login-box input:focus { border-color: var(--accent); }
+
+    #login-box button {
+      width: 100%;
+      padding: 9px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #login-box button:hover { background: var(--accent-hover); }
+    #login-box button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    #login-error {
+      color: #cc0000;
+      font-size: 12px;
+      margin-top: -8px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    #agent-hint {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    #agent-hint code {
+      background: var(--bg);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login overlay -->
+  <div id="login-overlay">
+    <div id="login-box">
+      <h2>Notes</h2>
+      <p>Enter your access token to continue</p>
+      <label for="token-input">Access Token</label>
+      <input type="password" id="token-input" placeholder="token" autocomplete="off">
+      <div id="login-error"></div>
+      <button id="login-btn">Sign In</button>
+      <div id="agent-hint">
+        Agent usage: set <code>Authorization: Bearer &lt;token&gt;</code> header on API requests.
+        Token is stored in <code>localStorage</code> and sent as Bearer on every API call.
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h1>📄 <span>Notes</span></h1>
+      <button id="toggle-sidebar" title="Toggle sidebar">‹</button>
+    </div>
+    <div id="search-box">
+      <input type="text" id="search-input" placeholder="Search notes…">
+    </div>
+    <div id="file-tree"></div>
+  </div>
+
+  <!-- Main content -->
+  <div id="main">
+    <div id="toolbar">
+      <div class="crumb" id="breadcrumb"></div>
+      <button id="logout-btn" title="Sign out">Sign out</button>
+    </div>
+    <div id="content">
+      <div id="welcome">
+        <h2>Welcome to Notes</h2>
+        <p>Select a note from the sidebar to get started</p>
+      </div>
+      <iframe id="note-frame" sandbox="allow-same-origin allow-top-navigation-by-user-activation"></iframe>
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+<script>
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+const TOKEN_KEY = 'notes_token';
+const loginOverlay = document.getElementById('login-overlay');
+const loginBox = document.getElementById('login-box');
+const tokenInput = document.getElementById('token-input');
+const loginBtn = document.getElementById('login-btn');
+const loginError = document.getElementById('login-error');
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+async function checkAuth() {
+  const token = getToken();
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch('/api/me', { headers, credentials: 'include' });
+  const data = await res.json();
+  return data.authenticated === true;
+}
+
+async function login(token) {
+  loginBtn.disabled = true;
+  loginError.style.display = 'none';
+
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      credentials: 'include',
+      body: JSON.stringify({ token }),
+    });
+
+    if (res.ok) {
+      loginOverlay.style.display = 'none';
+      init();
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      loginError.textContent = 'Invalid token';
+      loginError.style.display = 'block';
+      loginBtn.disabled = false;
+    }
+  } catch (e) {
+    localStorage.removeItem(TOKEN_KEY);
+    loginError.textContent = 'Connection error';
+    loginError.style.display = 'block';
+    loginBtn.disabled = false;
+  }
+}
+
+async function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+  loginOverlay.style.display = 'flex';
+  clearNote();
+}
+
+loginBtn.addEventListener('click', () => login(tokenInput.value.trim()));
+tokenInput.addEventListener('keydown', e => { if (e.key === 'Enter') login(tokenInput.value.trim()); });
+
+// ── SPA state ────────────────────────────────────────────────────────────────
+
+let currentPath = null;
+
+function apiHeaders() {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+async function apiFetch(url) {
+  return fetch(url, { headers: apiHeaders(), credentials: 'include' });
+}
+
+// ── File tree ────────────────────────────────────────────────────────────────
+
+async function loadTree() {
+  const res = await apiFetch('/api/files');
+  if (res.status === 401) return;
+  const data = await res.json();
+  renderTree(data.tree);
+}
+
+function renderTree(tree) {
+  const el = document.getElementById('file-tree');
+  el.innerHTML = '';
+
+  // Collect all top-level directories and their contents
+  // A top-level dir is everything before the first '/' in the path
+  const dirContents = {};   // topDir -> array of items in that dir
+  const rootItems = [];      // items at depth 0 (root level)
+
+  for (const item of tree) {
+    if (item.is_dir_index && item.depth === 0) continue; // skip root _index
+    const slashIdx = item.path.indexOf('/');
+    if (slashIdx === -1) {
+      // Root-level item (no slash)
+      rootItems.push(item);
+    } else {
+      const topDir = item.path.slice(0, slashIdx);
+      if (!dirContents[topDir]) dirContents[topDir] = [];
+      dirContents[topDir].push(item);
+    }
+  }
+
+  // Render each top-level directory
+  for (const [dir, items] of Object.entries(dirContents).sort((a, b) => a[0].localeCompare(b[0]))) {
+    // Directory header
+    const dirItem = document.createElement('div');
+    dirItem.className = 'tree-item dir-entry';
+    dirItem.innerHTML = '<span class="icon">📁</span><span class="label">' + dir + '</span>';
+    dirItem.addEventListener('click', () => navigateTo(dir + '/_index.html'));
+    el.appendChild(dirItem);
+
+    // All items in this directory, sorted by path
+    for (const item of items.sort((a, b) => a.path.localeCompare(b.path))) {
+      renderTreeItem(el, item);
+    }
+  }
+
+  // Root-level items
+  for (const item of rootItems.sort((a, b) => a.path.localeCompare(b.path))) {
+    renderTreeItem(el, item);
+  }
+}
+
+function renderTreeItem(el, item) {
+  const parts = item.path.split('/');
+  const depth = parts.length - 1;
+  const icon = item.is_dir_index ? '📄' : '📝';
+  const div = document.createElement('div');
+  div.className = 'tree-item' + (depth > 0 ? ' tree-depth-' + depth : '');
+  div.innerHTML = '<span class="icon">' + icon + '</span><span class="label">' + item.name + '</span>';
+  div.addEventListener('click', () => navigateTo(item.path));
+  el.appendChild(div);
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+
+async function navigateTo(path) {
+  if (!path || path === currentPath) return;
+  currentPath = path;
+
+  // Update tree selection
+  document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tree-item').forEach(el => {
+    if (el.querySelector('.label').textContent === path.split('/').pop()) {
+      el.classList.add('active');
+    }
+  });
+
+  // Build breadcrumb
+  renderBreadcrumb(path);
+
+  // Load note
+  const res = await apiFetch('/notes/' + path);
+  if (res.status === 401) return;
+
+  const text = await res.text();
+  const iframe = document.getElementById('note-frame');
+
+  // Use srcdoc so the iframe content shares the same security context as the page.
+  // Inject a script to post link clicks back to the parent for SPA navigation.
+  const script = `<script>
+    document.addEventListener('click', function(e) {
+      var a = e.target.closest ? e.target.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      e.preventDefault();
+      window.parent.postMessage({ type: 'note-link', path: href }, '*');
+    });
+  <\/script>`;
+  iframe.srcdoc = script + text;
+
+  iframe.style.display = 'block';
+
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('search-results').style.display = 'none';
+}
+
+// Listen for link clicks posted from the iframe content
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'note-link') {
+    var path = e.data.path;
+    if (path) navigateTo(path);
+  }
+});
+
+function renderBreadcrumb(path) {
+  const el = document.getElementById('breadcrumb');
+  el.innerHTML = '';
+  const parts = path.split('/');
+  parts.forEach((part, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'sep'; sep.textContent = '›';
+      el.appendChild(sep);
+    }
+    if (i < parts.length - 1) {
+      const a = document.createElement('a');
+      a.href = '#';
+      a.textContent = part;
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        navigateTo(path.split('/').slice(0, i+1).join('/') + '/_index.html');
+      });
+      el.appendChild(a);
+    } else {
+      const span = document.createElement('span');
+      span.textContent = part;
+      el.appendChild(span);
+    }
+  });
+}
+
+function clearNote() {
+  currentPath = null;
+  document.getElementById('note-frame').style.display = 'none';
+  document.getElementById('note-frame').srcdoc = '';
+  document.getElementById('welcome').style.display = 'block';
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('breadcrumb').innerHTML = '';
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────
+
+const searchInput = document.getElementById('search-input');
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') performSearch(searchInput.value.trim());
+});
+
+searchInput.addEventListener('input', () => {
+  if (!searchInput.value.trim()) {
+    document.getElementById('search-results').style.display = 'none';
+  }
+});
+
+async function performSearch(q) {
+  if (!q) return;
+  const res = await apiFetch('/api/search?q=' + encodeURIComponent(q));
+  if (res.status === 401) return;
+  const data = await res.json();
+  renderSearchResults(data.results || []);
+}
+
+function renderSearchResults(results) {
+  const el = document.getElementById('search-results');
+  el.innerHTML = '';
+
+  if (!results.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:14px;">No results</div>';
+    el.style.display = 'block';
+    return;
+  }
+
+  for (const r of results) {
+    const div = document.createElement('div');
+    div.className = 'search-result';
+    div.innerHTML = '<div class="title">' + r.title + '</div><div class="path">' + r.path + '</div><div class="snippet">' + r.snippet + '</div>';
+    div.addEventListener('click', () => navigateTo(r.path));
+    el.appendChild(div);
+  }
+
+  el.style.display = 'block';
+  document.getElementById('note-frame').style.display = 'none';
+  document.getElementById('welcome').style.display = 'none';
+}
+
+// ── Sidebar toggle ─────────────────────────────────────────────────────────
+
+const sidebar = document.getElementById('sidebar');
+const toggleBtn = document.getElementById('toggle-sidebar');
+
+let sidebarCollapsed = false;
+
+toggleBtn.addEventListener('click', () => {
+  sidebarCollapsed = !sidebarCollapsed;
+  sidebar.classList.toggle('collapsed', sidebarCollapsed);
+  toggleBtn.textContent = sidebarCollapsed ? '›' : '‹';
+});
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+async function init() {
+  await loadTree();
+}
+
+document.getElementById('logout-btn').addEventListener('click', logout);
+
+// Boot: check auth, show/hide overlay
+(async () => {
+  const authed = await checkAuth();
+  if (authed) {
+    loginOverlay.style.display = 'none';
+    init();
+  } else {
+    loginOverlay.style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>
