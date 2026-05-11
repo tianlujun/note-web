@@ -393,7 +393,7 @@
   .search-input::placeholder { color: var(--color-text-muted); }
   .search-input:focus {
     border-color: #C53030;
-    box-shadow: 0 0 0 3px rgba(0,117,222,0.12);
+    box-shadow: 0 0 0 3px rgba(197,48,48,0.12);
   }
 
   /* Login page */
