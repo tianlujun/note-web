@@ -124,7 +124,7 @@ export function ContentArea({ tab }) {
         window.dispatchEvent(new CustomEvent('notes:navigate', { detail: href }))
       })
     })
-  }, [html])
+  }, [tab, html])
 
   if (!tab) {
     return (
