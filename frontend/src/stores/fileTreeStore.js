@@ -5,7 +5,7 @@ export const useFileTreeStore = create((set, get) => ({
   loading: false,
   error: null,
   // Persisted expansion state
-  expandedDirs: JSON.parse(sessionStorage.getItem('notes_expanded') ?? '[]'),
+  expandedDirs: JSON.parse(sessionStorage.getItem('notes_expanded') ?? 'null') ?? [],
 
   setFiles: (files) => set({ files }),
 
