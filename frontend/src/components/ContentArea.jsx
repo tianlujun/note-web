@@ -51,8 +51,12 @@ export function ContentArea({ tab }) {
     if (!tab) {
       setHtml('')
       setError(null)
+      setLoading(false)
       return
     }
+
+    const controller = new AbortController()
+
     setLoading(true)
     setError(null)
     setHtml('')
@@ -63,14 +67,20 @@ export function ContentArea({ tab }) {
           ? { Authorization: `Bearer ${useAuthStore.getState().token}` }
           : {}),
       },
+      signal: controller.signal,
     })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.text()
       })
       .then((text) => setHtml(text))
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setError(err.message)
+      })
       .finally(() => setLoading(false))
+
+    return () => controller.abort()
   }, [tab])
 
   // Mount / update Shadow DOM with card wrapper
