@@ -224,8 +224,13 @@
   /* Content area */
   .content-scroll {
     flex: 1;
-    overflow-y: auto;
+    overflow: auto;
     padding: var(--space-6);
+  }
+
+  /* Shadow DOM note content — prevent wide elements from causing page-level scroll */
+  .content-scroll > * {
+    overflow-x: hidden;
   }
 
   .note-card {

@@ -31,6 +31,7 @@ blockquote {
   color: #6b7280;
 }
 pre { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+.note-card { overflow-x: hidden; }
 code { font-family: "JetBrains Mono", monospace; }
 code:not(pre code) { background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 6px; color: #4f6ef7; padding: 1px 5px; font-size: 0.875em; }
 table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
@@ -56,7 +57,7 @@ export function ContentArea({ tab }) {
     setError(null)
     setHtml('')
 
-    fetch(`${BASE}/api/files/${encodeURIComponent(tab.path)}`, {
+    fetch(`${BASE}/api/file/${encodeURIComponent(tab.path)}`, {
       headers: {
         ...(useAuthStore.getState().token
           ? { Authorization: `Bearer ${useAuthStore.getState().token}` }
