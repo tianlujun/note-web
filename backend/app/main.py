@@ -300,12 +300,7 @@ def serve_note(path: str):
     return FileResponse(file_path)
 
 
-@app.get("/")
-def index():
-    """Serve the SPA."""
-    spa_file = Path(__file__).parent / "static" / "index.html"
-    return FileResponse(spa_file)
-
+# ─── Mount static (SPA) ───────────────────────────────────────────────────────
 
 @app.post("/api/sync-trigger")
 async def sync_trigger():
