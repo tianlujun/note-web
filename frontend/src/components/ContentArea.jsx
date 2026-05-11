@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
+import { useAuthStore } from '../stores/authStore'
 
 const BASE = ''
 
@@ -28,8 +29,8 @@ export function ContentArea({ tab }) {
 
     fetch(`${BASE}/api/files/${encodeURIComponent(tab.path)}`, {
       headers: {
-        ...(window.__NOTES_TOKEN__
-          ? { Authorization: `Bearer ${window.__NOTES_TOKEN__}` }
+        ...(useAuthStore.getState().token
+          ? { Authorization: `Bearer ${useAuthStore.getState().token}` }
           : {}),
       },
     })

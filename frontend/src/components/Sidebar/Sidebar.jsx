@@ -7,7 +7,6 @@ export function Sidebar({ collapsed, onToggle, onFileOpen }) {
   const { openTab } = useTabStore()
 
   function handleSearchResult(result) {
-    openTab({ path: result.path, title: result.title || result.path })
     onFileOpen({ path: result.path, title: result.title || result.path })
   }
 

@@ -32,6 +32,7 @@ sessions: dict[str, dict] = {}
 
 def create_session() -> str:
     """Create a new session, return session_id."""
+    clean_expired_sessions()  # Prune before adding to keep memory clean
     session_id = secrets.token_urlsafe(32)
     sessions[session_id] = {
         "expires": time.time() + SESSION_TTL_DAYS * 86400,
@@ -62,13 +63,27 @@ def clean_expired_sessions():
 
 # ─── Helpers ───────────────────────────────────────────────────────────────────
 
-def verify_token(credentials: Optional[HTTPAuthorizationCredentials]) -> bool:
-    """Verify Bearer token."""
+def verify_token(credentials) -> bool:
+    """Verify Bearer token.
+
+    Accepts either:
+      - HTTPAuthorizationCredentials (from HTTPBearer middleware in /me endpoint)
+      - plain str (raw Authorization header string)
+    """
     if not ACCESS_TOKEN:
         return True  # No token configured
-    if credentials is None:
+
+    if isinstance(credentials, HTTPAuthorizationCredentials):
+        return credentials.scheme == "Bearer" and credentials.credentials == ACCESS_TOKEN
+
+    # Plain string path (used by /me endpoint with raw header)
+    if not credentials:
         return False
-    return credentials.scheme == "Bearer" and credentials.credentials == ACCESS_TOKEN
+    parts = credentials.split(" ", 1)
+    if len(parts) != 2:
+        return False
+    scheme, creds = parts
+    return scheme == "Bearer" and creds == ACCESS_TOKEN
 
 
 def build_tree(root: Path) -> list:
@@ -221,20 +236,9 @@ def me(request: Request):
     """Check current auth status."""
     creds = request.headers.get("Authorization")
     session_id = request.cookies.get(SESSION_COOKIE)
-    if verify_token_credentials(creds) or verify_session(session_id):
+    if verify_token(creds) or verify_session(session_id):
         return {"authenticated": True}
     return {"authenticated": False}
-
-
-def verify_token_credentials(auth_header: Optional[str]) -> bool:
-    """Check Bearer token from raw Authorization header string."""
-    if not auth_header:
-        return False
-    parts = auth_header.split(" ", 1)
-    if len(parts) != 2:
-        return False
-    scheme, credentials = parts
-    return scheme == "Bearer" and credentials == ACCESS_TOKEN
 
 
 @app.get("/api/files")

@@ -1,17 +1,13 @@
 /**
  * API client — thin wrapper around fetch with auth header injection.
- * Auth state lives in authStore (Zustand), not here.
+ * Token is read from authStore via getState() to avoid circular deps.
  */
+import { useAuthStore } from '../stores/authStore'
 
 const BASE = '' // relative → same origin; FastAPI serves everything
 
-function getToken() {
-  // Read from in-memory store via global (avoids circular deps in stores)
-  return window.__NOTES_TOKEN__ ?? null
-}
-
 async function request(path, opts = {}) {
-  const token = getToken()
+  const token = useAuthStore.getState().token
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -52,11 +48,11 @@ export const api = {
     request('/api/files'),
 
   file: (path) =>
-    request(`/api/files/${encodeURIComponent(path)}`),
+    request(`/api/file/${encodeURIComponent(path)}`),
 
   search: (q) =>
     request(`/api/search?q=${encodeURIComponent(q)}`),
 
   linkIndex: () =>
-    request('/api/link-index.json'),
+    request('/api/link-index'),
 }
