@@ -165,7 +165,6 @@ async def auth_middleware(request: Request, call_next):
         or path.startswith("/static")
         or path.startswith("/assets")
         or path == "/api/login"
-        or path == "/"
     ):
         return await call_next(request)
 
