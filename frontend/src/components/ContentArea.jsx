@@ -90,20 +90,13 @@ export function ContentArea({ tab }) {
 
   if (!tab) { return null }
 
-  const halfW = contentWidth / 2
-  const cardStyle = {
-    position: 'fixed',
-    left: `calc(50vw - ${halfW}px)`,
-    width: contentWidth,
-    maxHeight: 'calc(100dvh - 120px)',
-    overflowY: 'auto',
-    boxSizing: 'border-box',
-  }
+  // Dynamic width from meta tag; all centering and scrolling via CSS classes.
+  const cardStyle = { width: contentWidth }
 
   if (loading) {
     return (
-      <div className="content-scroll" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px', left: 'auto', width: 'auto', maxHeight: 'none', position: 'relative', overflowY: 'visible' }}>
+      <div className="content-scroll" ref={containerRef}>
+        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px' }}>
           <div className="skeleton" style={{ height: 28, width: '40%', marginBottom: 20 }} />
           <div className="skeleton" style={{ height: 16, width: '90%', marginBottom: 10 }} />
           <div className="skeleton" style={{ height: 16, width: '75%', marginBottom: 10 }} />
@@ -116,8 +109,8 @@ export function ContentArea({ tab }) {
 
   if (error) {
     return (
-      <div className="content-scroll" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px', textAlign: 'center', left: 'auto', width: 'auto', maxHeight: 'none', position: 'relative', overflowY: 'visible' }}>
+      <div className="content-scroll" ref={containerRef}>
+        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px', textAlign: 'center' }}>
           <p style={{ color: '#ef4444', marginBottom: 8 }}>Failed to load</p>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginBottom: 16 }}>{error}</p>
           <button

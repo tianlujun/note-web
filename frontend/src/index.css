@@ -200,11 +200,15 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .note-card {
-
-
+      width: 100%;
+      max-height: calc(100dvh - 80px);
       padding: var(--space-5);
+      overflow-y: auto;
     }
     .flex-col {
       height: 100dvh;
@@ -277,17 +281,18 @@
     border-bottom-color: var(--color-accent);
   }
 
-  /* Content area */
+  /* Content area — flex centering so note-card scrolls internally */
   .content-scroll {
     flex: 1;
     overflow: auto;
     padding: var(--space-6);
     box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .note-card {
-
-
     background: var(--color-bg-card);
     border: 1px solid var(--color-border-card);
     border-radius: var(--radius-card);
@@ -295,11 +300,18 @@
     padding: var(--space-8);
     animation: fade-up 0.25s var(--ease-out) both;
     overflow-x: hidden;
+    overflow-y: auto;
     font-size: 16px;
     line-height: 1.65;
     color: var(--color-text-primary);
     box-sizing: border-box;
+    margin: auto;
+    max-height: calc(100dvh - 100px);
+    /* Desktop default width */
+    width: 720px;
+    max-width: 100%;
   }
+
   .note-card h1 { font-size: 1.9em; font-weight: 700; margin: 0 0 0.55em; line-height: 1.2; letter-spacing: -0.025em; }
   .note-card h2 { font-size: 1.35em; font-weight: 600; margin: 1.5em 0 0.4em; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.25em; }
   .note-card h3 { font-size: 1.1em; font-weight: 600; margin: 1.2em 0 0.35em; }
