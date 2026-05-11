@@ -12,7 +12,6 @@ export function Sidebar({ collapsed, onToggle, onFileOpen }) {
 
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
-      {/* Header */}
       <div className="sidebar-header">
         {!collapsed && (
           <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)', letterSpacing: '0.01em' }}>
@@ -35,7 +34,6 @@ export function Sidebar({ collapsed, onToggle, onFileOpen }) {
         </button>
       </div>
 
-      {/* Search */}
       {!collapsed && (
         <div className="sidebar-search">
           <div className="relative">
@@ -44,10 +42,11 @@ export function Sidebar({ collapsed, onToggle, onFileOpen }) {
         </div>
       )}
 
-      {/* File tree */}
-      <div className="sidebar-tree">
-        {!collapsed && <FileTree onFileOpen={onFileOpen} />}
-      </div>
+      {!collapsed && (
+        <div className="sidebar-tree">
+          <FileTree onFileOpen={onFileOpen} />
+        </div>
+      )}
     </aside>
   )
 }

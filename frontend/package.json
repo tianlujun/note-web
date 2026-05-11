@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.0",
     "@tailwindcss/vite": "^4.3.0",
+    "@tanstack/react-virtual": "^3.13.24",
     "classnames": "^2.5.1",
     "postcss": "^8.5.14",
     "prop-types": "^15.8.1",
