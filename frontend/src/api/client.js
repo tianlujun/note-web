@@ -13,7 +13,7 @@ async function request(path, opts = {}) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...opts.headers,
   }
-  const res = await fetch(`${BASE}${path}`, { ...opts, headers })
+  const res = await fetch(`${BASE}${path}`, { ...opts, headers, credentials: 'include' })
   if (res.status === 401) {
     // Force logout
     window.dispatchEvent(new CustomEvent('notes:unauthorized'))

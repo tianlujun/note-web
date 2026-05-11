@@ -25,6 +25,7 @@ from backend.app.config import ACCESS_TOKEN
 
 # Path to the self-contained login page (no SPA/React needed)
 LOGIN_PAGE_PATH = Path(__file__).parent / "login_page.html"
+INDEX_HTML_PATH = Path(__file__).parent / "static" / "index.html"
 
 # ─── Session store (in-memory) ─────────────────────────────────────────────────
 # Maps session_id -> { "expires": unix_ts }
@@ -74,7 +75,7 @@ def verify_token(credentials) -> bool:
       - plain str (raw Authorization header string)
     """
     if not ACCESS_TOKEN:
-        return True  # No token configured
+        return False  # No token configured — bearer auth not possible
 
     if isinstance(credentials, HTTPAuthorizationCredentials):
         return credentials.scheme == "Bearer" and credentials.credentials == ACCESS_TOKEN
@@ -159,9 +160,6 @@ async def auth_middleware(request: Request, call_next):
     """Allow request if Bearer token is valid OR session cookie is valid."""
     path = request.url.path
 
-    # Log every request for debugging
-    print(f"[AUTH] {request.method} {path}", flush=True)
-
     # Public paths — no auth required
     if (
         path in ("/health", "/favicon.ico")
@@ -169,27 +167,28 @@ async def auth_middleware(request: Request, call_next):
         or path.startswith("/assets")
         or path == "/api/login"
     ):
-        print(f"[AUTH] {path} -> public, call_next", flush=True)
         return await call_next(request)
 
     # Check Bearer token
     creds = await bearer(request)
     if verify_token(creds):
-        print(f"[AUTH] {path} -> bearer ok, call_next", flush=True)
+        # Authenticated: serve SPA for /
+        if path == "/":
+            return HTMLResponse(INDEX_HTML_PATH.read_text(), status_code=200)
         return await call_next(request)
 
     # Check session cookie
     session_id = request.cookies.get(SESSION_COOKIE)
     if verify_session(session_id):
         clean_expired_sessions()
-        print(f"[AUTH] {path} -> session ok, call_next", flush=True)
+        # Authenticated: serve SPA for /
+        if path == "/":
+            return HTMLResponse(INDEX_HTML_PATH.read_text(), status_code=200)
         return await call_next(request)
 
     # Unauthenticated: serve self-contained login page for /, 401 JSON for API routes
-    print(f"[AUTH] {path} -> UNAUTHENTICATED, serving login_page", flush=True)
     if path == "/":
         return HTMLResponse(LOGIN_PAGE_PATH.read_text(), status_code=200)
-
     return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
 
@@ -329,6 +328,4 @@ async def sync_trigger():
 
 @app.get("/{path:path}")
 def catch_all(path: str):
-    if not path:  # empty path from "/"
-        return HTMLResponse(LOGIN_PAGE_PATH.read_text(), status_code=200)
     raise HTTPException(404)
