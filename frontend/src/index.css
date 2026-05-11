@@ -308,12 +308,14 @@
 
   /* Login page */
   .login-root {
+    width: 100dvw;
     min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--color-bg-page);
     padding: var(--space-4);
+    box-sizing: border-box;
   }
   .login-card {
     width: 100%;
