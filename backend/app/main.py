@@ -159,6 +159,9 @@ async def auth_middleware(request: Request, call_next):
     """Allow request if Bearer token is valid OR session cookie is valid."""
     path = request.url.path
 
+    # Log every request for debugging
+    print(f"[AUTH] {request.method} {path}", flush=True)
+
     # Public paths — no auth required
     if (
         path in ("/health", "/favicon.ico")
@@ -166,20 +169,24 @@ async def auth_middleware(request: Request, call_next):
         or path.startswith("/assets")
         or path == "/api/login"
     ):
+        print(f"[AUTH] {path} -> public, call_next", flush=True)
         return await call_next(request)
 
     # Check Bearer token
     creds = await bearer(request)
     if verify_token(creds):
+        print(f"[AUTH] {path} -> bearer ok, call_next", flush=True)
         return await call_next(request)
 
     # Check session cookie
     session_id = request.cookies.get(SESSION_COOKIE)
     if verify_session(session_id):
         clean_expired_sessions()
+        print(f"[AUTH] {path} -> session ok, call_next", flush=True)
         return await call_next(request)
 
     # Unauthenticated: serve self-contained login page for /, 401 JSON for API routes
+    print(f"[AUTH] {path} -> UNAUTHENTICATED, serving login_page", flush=True)
     if path == "/":
         return HTMLResponse(LOGIN_PAGE_PATH.read_text(), status_code=200)
 
