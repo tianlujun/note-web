@@ -23,6 +23,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from backend.app.config import ACCESS_TOKEN
 
+# Path to the self-contained login page (no SPA/React needed)
+LOGIN_PAGE_PATH = Path(__file__).parent / "login_page.html"
+
 # ─── Session store (in-memory) ─────────────────────────────────────────────────
 # Maps session_id -> { "expires": unix_ts }
 
@@ -176,6 +179,10 @@ async def auth_middleware(request: Request, call_next):
     if verify_session(session_id):
         clean_expired_sessions()
         return await call_next(request)
+
+    # Unauthenticated: serve self-contained login page for /, 401 JSON for API routes
+    if path == "/":
+        return HTMLResponse(LOGIN_PAGE_PATH.read_text(), status_code=200)
 
     return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
