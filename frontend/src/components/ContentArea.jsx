@@ -2,18 +2,29 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 
+/** Strip <html>/<head>/<body> wrapper from a full HTML document */
+function extractBody(html) {
+  const m = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
+  return m ? m[1] : html
+}
+
 export function ContentArea({ tab }) {
-  const contentRef = useRef(null)
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const prevTabRef = useRef(tab)
 
-  // Fetch note content when tab changes
+  // Keep a ref to detect actual tab changes
+  const tabRef = useRef(tab)
+  tabRef.current = tab
+
+  // Fetch note content
   useEffect(() => {
     if (!tab) {
       setHtml('')
       setError(null)
       setLoading(false)
+      prevTabRef.current = null
       return
     }
 
@@ -22,6 +33,7 @@ export function ContentArea({ tab }) {
     setLoading(true)
     setError(null)
     setHtml('')
+    prevTabRef.current = tab
 
     fetch(`/notes/${tab.path}`, {
       headers: {
@@ -35,7 +47,12 @@ export function ContentArea({ tab }) {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.text()
       })
-      .then((text) => setHtml(text))
+      .then((text) => {
+        // Only update if this is still the current tab
+        if (tabRef.current?.id === tab.id) {
+          setHtml(text)
+        }
+      })
       .catch((err) => {
         if (err.name === 'AbortError') return
         setError(err.message)
@@ -45,40 +62,31 @@ export function ContentArea({ tab }) {
     return () => controller.abort()
   }, [tab])
 
-  // Inject HTML into DOM and intercept links
+  // Intercept link clicks on the rendered content
+  const containerRef = useRef(null)
   useEffect(() => {
-    const el = contentRef.current
+    const el = containerRef.current
     if (!el) return
 
-    if (!tab) {
-      el.innerHTML = ''
-      return
+    const handler = (e) => {
+      const a = e.target.closest('a')
+      if (!a) return
+      const href = a.getAttribute('href')
+      if (!href) return
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        e.preventDefault()
+        window.open(href, '_blank', 'noopener')
+        return
+      }
+      e.preventDefault()
+      window.dispatchEvent(new CustomEvent('notes:navigate', { detail: href }))
     }
 
-    if (!html) return
+    el.addEventListener('click', handler)
+    return () => el.removeEventListener('click', handler)
+  }, [html])
 
-    // Strip DOCTYPE/html/body wrapper — extract just the inner content
-    let body = html
-    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
-    if (bodyMatch) body = bodyMatch[1]
-
-    el.innerHTML = body
-
-    // Intercept link clicks
-    el.querySelectorAll('a').forEach((a) => {
-      a.addEventListener('click', (e) => {
-        const href = a.getAttribute('href')
-        if (!href) return
-        if (href.startsWith('http://') || href.startsWith('https://')) {
-          e.preventDefault()
-          window.open(href, '_blank', 'noopener')
-          return
-        }
-        e.preventDefault()
-        window.dispatchEvent(new CustomEvent('notes:navigate', { detail: href }))
-      })
-    })
-  }, [tab, html])
+  // ——— Render ———
 
   if (!tab) {
     return (
@@ -135,9 +143,13 @@ export function ContentArea({ tab }) {
     )
   }
 
+  // Render HTML via React — no manual DOM manipulation
   return (
-    <div className="content-scroll">
-      <div className="note-card" ref={contentRef} />
+    <div className="content-scroll" ref={containerRef}>
+      <div
+        className="note-card"
+        dangerouslySetInnerHTML={{ __html: extractBody(html) }}
+      />
     </div>
   )
 }
