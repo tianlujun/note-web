@@ -6,11 +6,16 @@ import { api } from '../../api/client'
 // Derive top-level groups from flat file list
 function deriveGroups(files) {
   const dirs = new Set()
+  const rootFiles = []
   files.forEach((f) => {
     const parts = f.path.split('/')
-    if (parts.length > 1) dirs.add(parts[0])
+    if (parts.length > 1) {
+      dirs.add(parts[0])
+    } else {
+      rootFiles.push(f)
+    }
   })
-  return Array.from(dirs).sort()
+  return { groups: Array.from(dirs).sort(), rootFiles }
 }
 
 function groupFiles(files, group) {
@@ -23,7 +28,7 @@ export function FileTree({ onFileOpen }) {
   const { files, loading, error, expandedDirs, toggleDir, isExpanded, setFiles, setLoading, setError } =
     useFileTreeStore()
   const { tabs, activeTabId } = useTabStore()
-  const groups = deriveGroups(files)
+  const { groups, rootFiles } = deriveGroups(files)
 
   useEffect(() => {
     if (files.length > 0) return
@@ -54,11 +59,27 @@ export function FileTree({ onFileOpen }) {
 
   return (
     <nav className="flex flex-col gap-xs" style={{ flex: 1 }}>
-      {groups.length === 0 && (
+      {groups.length === 0 && rootFiles.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--color-text-muted)', padding: '8px 12px' }}>
           No notes yet
         </p>
       )}
+      {rootFiles.map((f) => {
+        const isActive = tabs.find((t) => t.id === activeTabId)?.path === f.path
+        return (
+          <button
+            key={f.path}
+            onClick={() => onFileOpen(f)}
+            className={`tree-file-btn${isActive ? ' active' : ''}`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span className="truncate">{f.name}</span>
+          </button>
+        )
+      })}
       {groups.map((group) => {
         const expanded = isExpanded(group)
         const groupFilesList = groupFiles(files, group)
