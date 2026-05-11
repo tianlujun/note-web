@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   root: __dirname,
@@ -12,7 +11,6 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    // In dev, proxy API calls to the running FastAPI backend
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
