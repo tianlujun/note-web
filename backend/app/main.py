@@ -329,5 +329,6 @@ async def sync_trigger():
 
 @app.get("/{path:path}")
 def catch_all(path: str):
-    # Let FastAPI's static mount handle /static/... and /notes/...
+    if not path:  # empty path from "/"
+        return HTMLResponse(LOGIN_PAGE_PATH.read_text(), status_code=200)
     raise HTTPException(404)
