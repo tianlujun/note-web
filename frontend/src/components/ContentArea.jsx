@@ -44,13 +44,27 @@ img { border-radius: 10px; max-width: 100%; height: auto; }
 export function ContentArea({ tab }) {
   const containerRef = useRef(null)
   const tabRef = useRef(tab)
+  const shadowRef = useRef(null)
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Keep ref in sync with tab prop
+  // Keep refs in sync with props
   tabRef.current = tab
 
+  // Initialize Shadow DOM once
+  useEffect(() => {
+    if (!containerRef.current) return
+    const host = containerRef.current
+    if (!host.shadowRoot) {
+      const shadow = host.attachShadow({ mode: 'open' })
+      shadowRef.current = shadow
+    } else {
+      shadowRef.current = host.shadowRoot
+    }
+  }, [])
+
+  // Fetch note content when tab changes
   useEffect(() => {
     console.log('[ContentArea] first effect running, tab:', tab)
     if (!tab) {
@@ -88,20 +102,25 @@ export function ContentArea({ tab }) {
     return () => controller.abort()
   }, [tab])
 
-  // Mount / update Shadow DOM with card wrapper
+  // Render / clear Shadow DOM
   useEffect(() => {
-    if (!containerRef.current) return
-    const host = containerRef.current
-    const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
+    const shadow = shadowRef.current
     const currentTab = tabRef.current
+    console.log('[ContentArea] second effect', { currentTab, html: html?.slice(0, 50), htmlLength: html?.length })
 
     if (!currentTab) {
-      shadow.innerHTML = ''
+      console.log('[ContentArea] clearing shadow DOM (no tab)')
+      if (shadow) shadow.innerHTML = ''
       return
     }
 
-    // no content yet — nothing to render
-    if (!html) return
+    if (!html) {
+      console.log('[ContentArea] second effect: no html yet, skipping')
+      return
+    }
+
+    console.log('[ContentArea] rendering note, html length:', html.length)
+    if (!shadow) return
 
     shadow.innerHTML = ''
 
