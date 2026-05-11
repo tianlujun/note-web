@@ -52,6 +52,7 @@ export function ContentArea({ tab }) {
   tabRef.current = tab
 
   useEffect(() => {
+    console.log('[ContentArea] first effect running, tab:', tab)
     if (!tab) {
       setHtml('')
       setError(null)
