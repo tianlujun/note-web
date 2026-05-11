@@ -78,6 +78,10 @@ export function ContentArea({ tab }) {
     if (!containerRef.current) return
     const host = containerRef.current
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
+    if (!tab) {
+      shadow.innerHTML = ''
+      return
+    }
     shadow.innerHTML = ''
 
     if (!html) return
