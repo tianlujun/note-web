@@ -6,9 +6,9 @@
 @layer base {
   :root {
     /* ── Palette (Notion warm neutrals) ── */
-    --color-bg-page:       #ffffff;
-    --color-bg-card:       #ffffff;
-    --color-bg-sidebar:    #ffffff;
+    --color-bg-page:       #FEFCF8;
+    --color-bg-card:       #FEFCF8;
+    --color-bg-sidebar:    #FEFCF8;
     --color-bg-hover:      #f6f5f4;
     --color-bg-active:     #efefee;
     --color-text-primary:   rgba(0,0,0,0.95);
