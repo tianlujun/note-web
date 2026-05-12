@@ -122,8 +122,10 @@
   .app-layout {
     display: flex;
     height: 100dvh;
-    overflow: hidden;
     background: var(--color-bg-page);
+    /* Center the entire layout unit in viewport */
+    max-width: 1096px;
+    margin: 0 auto;
   }
 
   /* Sidebar */
@@ -202,7 +204,7 @@
       overscroll-behavior: contain;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
     }
     .note-content {
       width: 100%;
@@ -254,6 +256,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     flex-shrink: 0;
+    min-width: 0;
   }
 
   .tab {
@@ -271,6 +274,7 @@
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     transition: color var(--duration-fast), background var(--duration-fast);
+    flex-shrink: 0;
   }
   .tab:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
   .tab.active {
@@ -287,7 +291,7 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
   }
 
   .note-content {
