@@ -20,22 +20,17 @@ export function AppShell() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((c) => !c)}
         onFileOpen={handleFileOpen}
       />
-
-      {/* Mobile: sidebar overlay backdrop */}
       {sidebarCollapsed === false && (
         <div
           className="mobile-backdrop"
           onClick={() => setSidebarCollapsed(true)}
         />
       )}
-
-      {/* Mobile: hamburger button (shown when sidebar is collapsed) */}
       <button
         className="mobile-hamburger"
         onClick={() => setSidebarCollapsed(false)}
@@ -45,11 +40,9 @@ export function AppShell() {
           <path d="M3 12h18M3 6h18M3 18h18" />
         </svg>
       </button>
-
-      {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0">
         <TabBar onTabClose={handleTabClose} />
-        <ContentArea tab={activeTab} />
+        {activeTab && <ContentArea tab={activeTab} />}
       </div>
     </div>
   )
