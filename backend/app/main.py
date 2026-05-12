@@ -11,6 +11,7 @@ import os
 import re
 import secrets
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -22,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from backend.app.config import ACCESS_TOKEN
+from backend.app import database
 
 # Path to the self-contained login page (no SPA/React needed)
 LOGIN_PAGE_PATH = Path(__file__).parent / "login_page.html"
@@ -32,6 +34,13 @@ INDEX_HTML_PATH = Path(__file__).parent / "static" / "index.html"
 
 SESSION_TTL_DAYS = 7
 sessions: dict[str, dict] = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup."""
+    database.init_db()
+    yield
 
 
 def create_session() -> str:
@@ -161,7 +170,7 @@ def search_notes(root: Path, q: str) -> list[dict]:
 
 # ─── App ──────────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="Notes Web App")
+app = FastAPI(title="Notes Web App", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -280,23 +289,47 @@ def api_files():
     root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
     if not root.exists():
         raise HTTPException(503, "Notes directory not mounted")
-    return JSONResponse({"tree": build_tree(root)})
+
+    if database.get_cache_valid():
+        tree = database.get_file_tree()
+    else:
+        database.update_tree_cache(root, full_rebuild=True)
+        database.set_cache_valid(True)
+        tree = database.get_file_tree()
+
+    return JSONResponse({"tree": tree})
 
 
 @app.get("/api/link-index")
 def api_link_index():
-    root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
-    return JSONResponse(get_link_index(root))
+    if not database.get_cache_valid():
+        root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+        if root.exists():
+            database.update_link_cache(root)
+            database.set_cache_valid(True)
+
+    return JSONResponse(database.get_link_index())
 
 
 @app.get("/api/search")
 def api_search(q: str = Query(..., min_length=1)):
-    root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
-    return JSONResponse({"results": search_notes(root, q)})
+    if not database.get_cache_valid():
+        root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+        if root.exists():
+            database.rebuild_search_index(root)
+            database.set_cache_valid(True)
+
+    results = database.search_notes(q)
+    return JSONResponse({"results": results})
 
 
 @app.get("/api/file/{path:path}")
 def api_file(path: str):
+    if database.get_cache_valid():
+        cached = database.get_file_content(path)
+        if cached:
+            return JSONResponse(cached)
+
     root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
     file_path = root / path
     try:
@@ -308,17 +341,7 @@ def api_file(path: str):
     content = file_path.read_text(encoding="utf-8")
     title_match = re.search(r"<title[^>]*>([^<]+)</title>", content)
     title = title_match.group(1).strip() if title_match else path
-    return JSONResponse({"path": path, "title": title})
-
-
-@app.get("/notes/{path:path}", response_class=HTMLResponse)
-def serve_note(path: str):
-    """Serve an HTML note file directly."""
-    root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
-    file_path = root / path
-    if not file_path.is_file():
-        raise HTTPException(404, "Not found")
-    return FileResponse(file_path)
+    return JSONResponse({"path": path, "title": title, "content": content})
 
 
 # ─── Mount static (SPA) ───────────────────────────────────────────────────────
@@ -339,13 +362,34 @@ async def sync_trigger():
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
+            database.log_sync("failed")
             return JSONResponse(
                 status_code=500,
                 content={"ok": False, "detail": stderr.decode() or "rclone failed"},
             )
+
+        database.incremental_cache_update()
+
         return JSONResponse({"ok": True, "triggered_at": datetime.utcnow().isoformat()})
     except Exception as exc:
+        database.log_sync("failed")
         return JSONResponse(status_code=500, content={"ok": False, "detail": str(exc)})
+
+
+@app.post("/api/cache/rebuild")
+def cache_rebuild():
+    """Manually trigger a full cache rebuild."""
+    try:
+        database.full_cache_rebuild()
+        return JSONResponse({"ok": True, "message": "Cache rebuilt successfully"})
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"ok": False, "detail": str(exc)})
+
+
+@app.get("/api/cache/status")
+def cache_status():
+    """Get cache status and statistics."""
+    return JSONResponse(database.get_sync_status())
 
 
 @app.get("/{path:path}")

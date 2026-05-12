@@ -1,0 +1,20 @@
+schema: spec-driven
+created: 2026-05-12
+status: proposed
+title: SQLite 缓存层架构
+description: 使用SQLite作为笔记系统的缓存层，加速文件树、搜索和链接图谱
+
+context:
+  notes_source: /home/tianlj/obsidian (Markdown → HTML)
+  notes_format: HTML (目标)
+  directory_schema: Obsidian (最多3层)
+  sync_trigger: Agent notify → rclone sync
+  scale: 成百上千个文件
+  existing_sqlite: true
+
+goals:
+  - 文件树加载 < 100ms
+  - 搜索响应 < 200ms
+  - 笔记加载 < 50ms
+  - 支持全文搜索
+  - 支持链接图谱
