@@ -2,22 +2,28 @@ import { useEffect, useRef, useState } from 'react'
 import { useTabStore } from '@/stores/tab-store'
 import { api } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
+
+const LINK_INTERCEPT_SCRIPT = `<script>
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest ? e.target.closest('a') : null;
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:')) return;
+    e.preventDefault();
+    window.parent.postMessage({ type: 'note-link', path: href }, '*');
+  });
+<\/script>`
 
 export function ContentArea() {
-  const { getActiveTab } = useTabStore()
+  const { getActiveTab, openTab } = useTabStore()
   const activeTab = getActiveTab()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const shadowRef = useRef<HTMLDivElement>(null)
-  const [content, setContent] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!activeTab) {
-      setContent(null)
-      return
-    }
+    if (!activeTab) return
 
     let cancelled = false
     setIsLoading(true)
@@ -25,8 +31,8 @@ export function ContentArea() {
 
     api.getFile(activeTab.path)
       .then((data) => {
-        if (!cancelled) {
-          setContent(data.content)
+        if (!cancelled && iframeRef.current) {
+          iframeRef.current.srcdoc = LINK_INTERCEPT_SCRIPT + data.content
           setIsLoading(false)
         }
       })
@@ -43,28 +49,20 @@ export function ContentArea() {
   }, [activeTab?.path])
 
   useEffect(() => {
-    if (shadowRef.current && containerRef.current) {
-      const shadow = shadowRef.current
-      const container = containerRef.current
-
-      const updateShadow = () => {
-        if (container.scrollWidth > container.clientWidth) {
-          shadow.classList.add('opacity-100')
-        } else {
-          shadow.classList.remove('opacity-100')
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'note-link') {
+        const path = event.data.path
+        if (path) {
+          const cleanPath = path.replace(/^\//, '')
+          const title = cleanPath.split('/').pop() || cleanPath
+          openTab(cleanPath, title)
         }
       }
-
-      updateShadow()
-      container.addEventListener('scroll', updateShadow)
-      window.addEventListener('resize', updateShadow)
-
-      return () => {
-        container.removeEventListener('scroll', updateShadow)
-        window.removeEventListener('resize', updateShadow)
-      }
     }
-  }, [content])
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [openTab])
 
   if (!activeTab) {
     return (
@@ -74,62 +72,31 @@ export function ContentArea() {
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="p-8 space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Failed to load note</p>
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Retry
-        </Button>
+        <button onClick={() => window.location.reload()}>Retry</button>
       </div>
     )
   }
 
-  const stripBodyStyles = (html: string) => {
-  if (!html) return ''
-  return html.replace(/body\s*\{[^}]*\}/gi, '')
-}
-
-return (
-    <div className="relative h-full overflow-hidden">
-      <div
-        ref={containerRef}
-        className="h-full overflow-auto p-8"
-        style={{ scrollbarWidth: 'thin' }}
-      >
-        <article className="mx-auto max-w-3xl">
-          <div
-            ref={shadowRef}
-            className="prose prose-sm dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: stripBodyStyles(content || '') }}
-            onClick={(e) => {
-              const target = e.target as HTMLElement
-              const link = target.closest('a')
-              if (link) {
-                const href = link.getAttribute('href')
-                if (href && !href.startsWith('http') && !href.startsWith('mailto:')) {
-                  e.preventDefault()
-                  const path = href.replace(/^\//, '')
-                  const title = link.textContent || path
-                  useTabStore.getState().openTab(path, title)
-                }
-              }
-            }}
-          />
-        </article>
-      </div>
-      <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent opacity-0 transition-opacity" />
+  return (
+    <div className="relative h-full">
+      <iframe
+        ref={iframeRef}
+        className="h-full w-full border-none bg-background"
+        sandbox="allow-scripts allow-top-navigation-by-user-activation"
+        title={activeTab?.title || 'Note content'}
+      />
+      {isLoading && (
+        <div className="absolute inset-0 p-8">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="mt-4 h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-3/4" />
+        </div>
+      )}
     </div>
   )
 }

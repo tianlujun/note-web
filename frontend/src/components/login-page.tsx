@@ -12,7 +12,7 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!token.trim()) {
-      setError('Token required')
+      setError('丹书尚缺，烦请付之')
       return
     }
 
@@ -22,7 +22,7 @@ export function LoginPage() {
     try {
       await login(token)
     } catch {
-      setError('Invalid token')
+      setError('丹书似伪，烦请复授')
     } finally {
       setIsLoading(false)
     }
@@ -33,9 +33,8 @@ export function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <img src="/seal.svg" alt="logo" className="mb-4 mx-auto h-24 w-24" />
-          <h1 className="text-2xl font-semibold">Note</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Enter your access token to continue
+          <p className="text-lg text-muted-foreground">
+            纸田墨稼
           </p>
         </div>
 
@@ -43,11 +42,11 @@ export function LoginPage() {
           <div>
             <Input
               type="password"
-              placeholder="Access token"
+              placeholder="丹书"
               value={token}
               onChange={(e) => setToken(e.target.value)}
               autoComplete="off"
-              aria-label="Access token"
+              aria-label="丹书"
             />
           </div>
 
@@ -58,29 +57,10 @@ export function LoginPage() {
           )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {isLoading ? '墨染中...' : '启卷'}
           </Button>
         </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t" />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center">
-          <svg
-            viewBox="0 0 100 100"
-            className="h-12 w-12 opacity-20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <rect x="20" y="20" width="60" height="60" rx="8" />
-            <rect x="30" y="30" width="40" height="40" rx="4" />
-            <circle cx="50" cy="50" r="8" fill="currentColor" />
-          </svg>
-        </div>
       </div>
     </div>
   )

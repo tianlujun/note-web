@@ -3,8 +3,15 @@ import { SearchInput } from './search-input'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { Menu, X, Network } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Menu, X, Network, LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface SidebarProps {
   onOpenGraph: () => void
@@ -12,10 +19,31 @@ interface SidebarProps {
 
 export function Sidebar({ onOpenGraph }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const { logout } = useAuthStore()
+
+  const handleLogout = async () => {
+    await logout()
+  }
+
+  const sealMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent">
+          <img src="/seal.svg" alt="seal" className="h-8 w-8 cursor-pointer" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="bg-background border">
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          退出登录
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 
   const sidebarHeader = (
     <div className="flex items-center justify-between border-b px-3 py-2">
-      <img src="/seal.svg" alt="seal" className="h-8 w-8" />
+      {sealMenu}
       <div className="flex items-center gap-1">
         <ThemeToggle />
         <Button
@@ -60,7 +88,7 @@ export function Sidebar({ onOpenGraph }: SidebarProps) {
           />
           <div className="fixed left-0 top-0 flex h-full w-64 flex-col border-r bg-card shadow-lg">
             <div className="flex items-center justify-between border-b px-3 py-2">
-              <img src="/seal.svg" alt="seal" className="h-8 w-8" />
+              {sealMenu}
               <div className="flex items-center gap-1">
                 <ThemeToggle />
                 <Button

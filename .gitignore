@@ -6,6 +6,10 @@ __pycache__/
 
 # Build outputs
 backend/app/static/assets/
+frontend/dist/
+
+# Data (SQLite DB)
+backend/data/
 
 # Environment
 .env
