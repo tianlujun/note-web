@@ -90,13 +90,12 @@ export function ContentArea({ tab }) {
 
   if (!tab) { return null }
 
-  // Dynamic width from meta tag; all centering and scrolling via CSS classes.
-  const cardStyle = { width: contentWidth }
+  const contentStyle = { width: contentWidth }
 
   if (loading) {
     return (
       <div className="content-scroll" ref={containerRef}>
-        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px' }}>
+        <div className="note-content" style={{ ...contentStyle, padding: '32px 24px' }}>
           <div className="skeleton" style={{ height: 28, width: '40%', marginBottom: 20 }} />
           <div className="skeleton" style={{ height: 16, width: '90%', marginBottom: 10 }} />
           <div className="skeleton" style={{ height: 16, width: '75%', marginBottom: 10 }} />
@@ -110,7 +109,7 @@ export function ContentArea({ tab }) {
   if (error) {
     return (
       <div className="content-scroll" ref={containerRef}>
-        <div className="note-card" style={{ ...cardStyle, padding: '32px 24px', textAlign: 'center' }}>
+        <div className="note-content" style={{ ...contentStyle, padding: '32px 24px', textAlign: 'center' }}>
           <p style={{ color: '#ef4444', marginBottom: 8 }}>Failed to load</p>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginBottom: 16 }}>{error}</p>
           <button
@@ -127,8 +126,8 @@ export function ContentArea({ tab }) {
   return (
     <div className="content-scroll" ref={containerRef}>
       <div
-        className="note-card"
-        style={cardStyle}
+        className="note-content"
+        style={contentStyle}
         dangerouslySetInnerHTML={{ __html: extractBody(html) }}
       />
     </div>
