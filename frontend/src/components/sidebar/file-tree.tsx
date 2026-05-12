@@ -23,9 +23,7 @@ function TreeItem({ node, depth }: TreeItemProps) {
   const isActive = tabs.some((t) => t.path === node.path) && tabs.find((t) => t.path === node.path)?.id === activeTabId
 
   useEffect(() => {
-    if (isOpen && hasChildren) {
-      setExpanded(true)
-    }
+    setExpanded(Boolean(isOpen && hasChildren))
   }, [isOpen, hasChildren])
 
   const handleClick = () => {
@@ -36,7 +34,7 @@ function TreeItem({ node, depth }: TreeItemProps) {
     }
   }
 
-  const paddingLeft = depth * 16 + 8
+  const paddingLeft = depth * 20 + 12
 
   return (
     <div>
@@ -44,9 +42,9 @@ function TreeItem({ node, depth }: TreeItemProps) {
         variant="ghost"
         className={cn(
           'h-8 w-full justify-start text-sm truncate',
-          `pl-[${paddingLeft}px]`,
           isActive && 'bg-accent/10 text-accent'
         )}
+        style={{ paddingLeft: `${paddingLeft}px` }}
         onClick={handleClick}
         aria-label={isDir ? `Directory ${node.name}` : `File ${node.name}`}
       >

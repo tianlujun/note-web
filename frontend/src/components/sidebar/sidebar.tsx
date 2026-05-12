@@ -35,14 +35,14 @@ export function Sidebar({ onOpenGraph }: SidebarProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed left-4 top-4 z-40 hidden md:flex"
+        className="fixed left-4 top-4 z-40 flex md:hidden"
         onClick={() => setIsOpen(true)}
         aria-label="Open sidebar"
       >
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="flex h-full w-64 flex-col border-r bg-card">
+      <div className="hidden md:flex h-full w-64 flex-col border-r bg-card">
         {sidebarHeader}
         <div className="border-b px-3 py-2">
           <SearchInput />
