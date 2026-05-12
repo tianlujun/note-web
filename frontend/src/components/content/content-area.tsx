@@ -30,10 +30,19 @@ export function ContentArea() {
     setError(null)
 
     api.getFile(activeTab.path)
-      .then((data) => {
+      .then(async (data) => {
         if (!cancelled && iframeRef.current) {
-          iframeRef.current.srcdoc = LINK_INTERCEPT_SCRIPT + data.content
-          setIsLoading(false)
+          // Rewrite img src: relative paths -> /api/attachment/{path}?session=xxx
+          const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || '';
+          const noteDir = activeTab.path.replace(/\/[^/]+$/, '');
+          const processed = sessionId
+            ? data.content.replace(
+                /<img([^>]*)src="(attachments\/[^"]+)"/g,
+                `<img$1src="/api/attachment/${noteDir}/$2?session=${sessionId}"`
+              )
+            : data.content;
+          iframeRef.current.srcdoc = LINK_INTERCEPT_SCRIPT + processed;
+          setIsLoading(false);
         }
       })
       .catch((e) => {

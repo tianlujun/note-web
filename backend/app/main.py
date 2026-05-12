@@ -217,6 +217,12 @@ async def auth_middleware(request: Request, call_next):
             return HTMLResponse(INDEX_HTML_PATH.read_text(), status_code=200)
         return await call_next(request)
 
+    # Session query param (for img tags in iframe srcdoc)
+    session_param = request.query_params.get("session")
+    if session_param and verify_session(session_param):
+        clean_expired_sessions()
+        return await call_next(request)
+
     # Unauthenticated: serve self-contained login page for /, 401 JSON for API routes
     if path == "/":
         return HTMLResponse(LOGIN_PAGE_PATH.read_text(), status_code=200)
@@ -224,6 +230,40 @@ async def auth_middleware(request: Request, call_next):
 
 
 # ─── Mount static (SPA) ───────────────────────────────────────────────────────
+
+
+def _verify_any_auth(request: Request) -> bool:
+    """Verify auth from Bearer token or session cookie or session query param."""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        if ACCESS_TOKEN and token == ACCESS_TOKEN:
+            return True
+    session_id = request.cookies.get(SESSION_COOKIE)
+    if session_id and verify_session(session_id):
+        return True
+    session_param = request.query_params.get("session")
+    if session_param and verify_session(session_param):
+        return True
+    return False
+
+
+@app.get("/api/attachment/{path:path}")
+def api_attachment(request: Request, path: str):
+    """Serve attachment files (images) from the notes directory."""
+    import mimetypes
+    if not _verify_any_auth(request):
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+    file_path = root / path
+    try:
+        file_path.resolve().relative_to(root.resolve())
+    except ValueError:
+        raise HTTPException(403, "Access denied")
+    if not file_path.is_file():
+        raise HTTPException(404, "File not found")
+    media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    return FileResponse(file_path, media_type=media_type)
 
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
@@ -247,7 +287,7 @@ async def login(request: Request, response: Response):
         response.set_cookie(
             key=SESSION_COOKIE,
             value=session_id,
-            httponly=True,
+            httponly=False,  # JS needs session_id for img rewrite
             samesite="lax",
             max_age=SESSION_TTL_DAYS * 86400,
         )
@@ -260,7 +300,7 @@ async def login(request: Request, response: Response):
     response.set_cookie(
         key=SESSION_COOKIE,
         value=session_id,
-        httponly=True,
+        httponly=False,  # JS needs session_id for img rewrite,
         samesite="lax",
         max_age=SESSION_TTL_DAYS * 86400,
     )
