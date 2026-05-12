@@ -432,6 +432,10 @@ def cache_status():
     return JSONResponse(database.get_sync_status())
 
 
+@app.get("/seal.svg")
+async def seal_svg():
+    return FileResponse(Path(__file__).parent / "static" / "seal.svg", media_type="image/svg+xml")
+
 @app.get("/{path:path}")
 def catch_all(path: str):
     raise HTTPException(404)
