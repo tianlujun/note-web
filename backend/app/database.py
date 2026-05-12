@@ -520,7 +520,7 @@ def extract_links_from_html(html_content: str, source_path: str) -> list[dict]:
             else:
                 # Relative to source file's directory
                 source_dir = str(Path(source_path).parent)
-                target_path = str((Path(source_dir) / href).resolve().relative_to(Path.cwd()))
+                target_path = str((Path(source_dir) / href))
 
             # Normalize .html extension
             if not target_path.endswith(".html"):

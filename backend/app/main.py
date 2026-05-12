@@ -193,7 +193,7 @@ async def auth_middleware(request: Request, call_next):
 
     # Public paths — no auth required
     if (
-        path in ("/health", "/favicon.ico")
+        path in ("/health", "/favicon.ico", "/seal.svg")
         or path.startswith("/static")
         or path.startswith("/assets")
         or path == "/api/login"
