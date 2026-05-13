@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { ChevronRight, File, Folder, Copy } from 'lucide-react'
+import { ChevronRight, File, Folder, Copy, Link } from 'lucide-react'
 import { useFileTreeStore } from '@/stores/file-tree-store'
 import { useTabStore } from '@/stores/tab-store'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -88,13 +88,28 @@ function TreeItem({ node, depth }: TreeItemProps) {
 function ContextMenu() {
   const { contextMenu, closeContextMenu } = useFileTreeStore()
   const [copied, setCopied] = useState(false)
+  const [copiedType, setCopiedType] = useState<'path' | 'link' | null>(null)
 
   const handleCopyRelativePath = useCallback(() => {
     if (!contextMenu) return
     const path = contextMenu.node.path
     navigator.clipboard.writeText(path).then(() => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      setCopiedType('path')
+      setTimeout(() => { setCopied(false); setCopiedType(null) }, 1500)
+    })
+    closeContextMenu()
+  }, [contextMenu, closeContextMenu])
+
+  const handleCopyLink = useCallback(() => {
+    if (!contextMenu) return
+    const path = contextMenu.node.path
+    const url = `https://notes.cinnabar.ink/api/attachment?path=${encodeURIComponent(path)}`
+    const curl = `curl -s "${url}" \\\n  -H "Authorization: Bearer <TOKEN>"`
+    navigator.clipboard.writeText(curl).then(() => {
+      setCopied(true)
+      setCopiedType('link')
+      setTimeout(() => { setCopied(false); setCopiedType(null) }, 1500)
     })
     closeContextMenu()
   }, [contextMenu, closeContextMenu])
@@ -124,13 +139,13 @@ function ContextMenu() {
   const menuStyle: React.CSSProperties = {
     position: 'fixed',
     left: Math.min(contextMenu.x, window.innerWidth - 200),
-    top: Math.min(contextMenu.y, window.innerHeight - 60),
+    top: Math.min(contextMenu.y, window.innerHeight - 80),
     zIndex: 9999,
   }
 
   return (
     <div
-      className="absolute bg-background border rounded-lg shadow-lg py-1 min-w-[160px]"
+      className="absolute bg-background border rounded-lg shadow-lg py-1 min-w-[200px]"
       style={menuStyle}
       onClick={(e) => e.stopPropagation()}
     >
@@ -140,7 +155,15 @@ function ContextMenu() {
         onClick={handleCopyRelativePath}
       >
         <Copy className="mr-2 h-4 w-4" />
-        {copied ? 'Copied!' : 'Copy relative path'}
+        {copied && copiedType === 'path' ? 'Copied!' : 'Copy relative path'}
+      </Button>
+      <Button
+        variant="ghost"
+        className="w-full justify-start text-sm h-8 px-3"
+        onClick={handleCopyLink}
+      >
+        <Link className="mr-2 h-4 w-4" />
+        {copied && copiedType === 'link' ? 'Copied!' : 'Copy curl link'}
       </Button>
     </div>
   )
