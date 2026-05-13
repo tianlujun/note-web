@@ -47,14 +47,15 @@ function TreeItem({ node, depth }: TreeItemProps) {
   const paddingLeft = depth * 20 + 12
 
   return (
-    <div>
+    <div className="leading-tight">
       <Button
         variant="ghost"
         className={cn(
-          'h-8 w-full justify-start text-sm truncate',
+          'h-7 w-full justify-start text-sm truncate',
+          isDir ? 'font-medium text-foreground' : 'font-normal text-muted-foreground',
           isActive && 'bg-accent/10 text-accent'
         )}
-        style={{ paddingLeft: `${paddingLeft}px` }}
+        style={{ paddingLeft: `${paddingLeft}px`, paddingRight: '8px' }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         aria-label={isDir ? `Directory ${displayName(node.name)}` : `File ${displayName(node.name)}`}
@@ -103,7 +104,7 @@ function ContextMenu() {
     if (!contextMenu) return
     const path = contextMenu.node.path
     const url = `https://notes.cinnabar.ink/api/attachment/${encodeURIComponent(path)}`
-    const curl = `curl -s "${url}" -H "Authorization: Bearer <TOKEN>"`
+    const curl = `curl -s "${url}" -H "Authorization: Bearer ***`
     navigator.clipboard.writeText(curl).then(() => {
       setCopiedType('link')
       setTimeout(() => setCopiedType(null), 1500)
@@ -115,7 +116,7 @@ function ContextMenu() {
     if (!contextMenu) return
     const path = contextMenu.node.path
     const url = `https://notes.cinnabar.ink/api/ls/${encodeURIComponent(path)}`
-    const curl = `curl -s "${url}" -H "Authorization: Bearer <TOKEN>"`
+    const curl = `curl -s "${url}" -H "Authorization: Bearer ***`
     navigator.clipboard.writeText(curl).then(() => {
       setCopiedType('link')
       setTimeout(() => setCopiedType(null), 1500)
@@ -191,7 +192,7 @@ export function FileTree() {
     return (
       <div className="p-2 space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-8 w-full" />
+          <Skeleton key={i} className="h-7 w-full" />
         ))}
       </div>
     )
@@ -217,7 +218,7 @@ export function FileTree() {
   }
 
   return (
-    <div className="relative py-2">
+    <div className="relative py-1">
       {tree.map((node) => (
         <TreeItem key={node.path} node={node} depth={0} />
       ))}
