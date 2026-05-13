@@ -104,7 +104,7 @@ function ContextMenu() {
   const handleCopyLink = useCallback(() => {
     if (!contextMenu) return
     const path = contextMenu.node.path
-    const url = `https://notes.cinnabar.ink/api/attachment?path=${encodeURIComponent(path)}`
+    const url = `https://notes.cinnabar.ink/api/attachment/${encodeURIComponent(path)}`
     const curl = `curl -s "${url}" \\\n  -H "Authorization: Bearer <TOKEN>"`
     navigator.clipboard.writeText(curl).then(() => {
       setCopied(true)
