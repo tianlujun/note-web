@@ -111,6 +111,18 @@ function ContextMenu() {
     closeContextMenu()
   }, [contextMenu, closeContextMenu])
 
+  const handleCopyLs = useCallback(() => {
+    if (!contextMenu) return
+    const path = contextMenu.node.path
+    const url = `https://notes.cinnabar.ink/api/ls/${encodeURIComponent(path)}`
+    const curl = `curl -s "${url}" -H "Authorization: Bearer <TOKEN>"`
+    navigator.clipboard.writeText(curl).then(() => {
+      setCopiedType('link')
+      setTimeout(() => setCopiedType(null), 1500)
+    })
+    closeContextMenu()
+  }, [contextMenu, closeContextMenu])
+
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -132,6 +144,8 @@ function ContextMenu() {
   }, [contextMenu, closeContextMenu])
 
   if (!contextMenu) return null
+
+  const isDir = contextMenu.node.type === 'dir'
 
   const menuStyle: React.CSSProperties = {
     position: 'fixed',
@@ -157,10 +171,10 @@ function ContextMenu() {
       <Button
         variant="ghost"
         className="w-full justify-start text-sm h-8 px-3"
-        onClick={handleCopyLink}
+        onClick={isDir ? handleCopyLs : handleCopyLink}
       >
         <Link className="mr-2 h-4 w-4" />
-        {copiedType === 'link' ? 'Copied!' : 'Copy curl link'}
+        {copiedType === 'link' ? 'Copied!' : isDir ? 'Copy ls curl' : 'Copy curl link'}
       </Button>
     </div>
   )
