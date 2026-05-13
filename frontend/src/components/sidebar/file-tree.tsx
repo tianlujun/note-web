@@ -87,16 +87,14 @@ function TreeItem({ node, depth }: TreeItemProps) {
 
 function ContextMenu() {
   const { contextMenu, closeContextMenu } = useFileTreeStore()
-  const [copied, setCopied] = useState(false)
   const [copiedType, setCopiedType] = useState<'path' | 'link' | null>(null)
 
   const handleCopyRelativePath = useCallback(() => {
     if (!contextMenu) return
     const path = contextMenu.node.path
     navigator.clipboard.writeText(path).then(() => {
-      setCopied(true)
       setCopiedType('path')
-      setTimeout(() => { setCopied(false); setCopiedType(null) }, 1500)
+      setTimeout(() => setCopiedType(null), 1500)
     })
     closeContextMenu()
   }, [contextMenu, closeContextMenu])
@@ -105,11 +103,10 @@ function ContextMenu() {
     if (!contextMenu) return
     const path = contextMenu.node.path
     const url = `https://notes.cinnabar.ink/api/attachment/${encodeURIComponent(path)}`
-    const curl = `curl -s "${url}" \\\n  -H "Authorization: Bearer <TOKEN>"`
+    const curl = `curl -s "${url}" -H "Authorization: Bearer <TOKEN>"`
     navigator.clipboard.writeText(curl).then(() => {
-      setCopied(true)
       setCopiedType('link')
-      setTimeout(() => { setCopied(false); setCopiedType(null) }, 1500)
+      setTimeout(() => setCopiedType(null), 1500)
     })
     closeContextMenu()
   }, [contextMenu, closeContextMenu])
@@ -155,7 +152,7 @@ function ContextMenu() {
         onClick={handleCopyRelativePath}
       >
         <Copy className="mr-2 h-4 w-4" />
-        {copied && copiedType === 'path' ? 'Copied!' : 'Copy relative path'}
+        {copiedType === 'path' ? 'Copied!' : 'Copy relative path'}
       </Button>
       <Button
         variant="ghost"
@@ -163,7 +160,7 @@ function ContextMenu() {
         onClick={handleCopyLink}
       >
         <Link className="mr-2 h-4 w-4" />
-        {copied && copiedType === 'link' ? 'Copied!' : 'Copy curl link'}
+        {copiedType === 'link' ? 'Copied!' : 'Copy curl link'}
       </Button>
     </div>
   )
