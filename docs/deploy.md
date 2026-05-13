@@ -4,6 +4,21 @@ Tested on: NERD VPS (172.245.147.11), Ubuntu, user-level systemd.
 
 ---
 
+## Architecture
+
+```
+frontend/dist/ (Vite build output)
+  ↕ npm run build
+backend/app/main.py → FRONTEND_DIST = /opt/note-web/frontend/dist
+  → served directly at / (no hash sync problem)
+  → /seal.svg route added in main.py
+/root/notes/ → HTML vault (synced from TOS)
+```
+
+**No `backend/app/static/` layer.** Frontend dist is served directly. No copy step after build.
+
+---
+
 ## Prerequisites
 
 - Node.js 20+ (`node --version`)
@@ -18,13 +33,13 @@ Tested on: NERD VPS (172.245.147.11), Ubuntu, user-level systemd.
 ### 1. Clone the repo
 
 ```bash
-ssh -p 22 root@172.245.147.11
+ssh root@172.245.147.11
 cd /opt
 git clone git@github.com:tianlujun/note-web.git
 cd note-web
 ```
 
-### 2. Install frontend dependencies and build
+### 2. Build frontend
 
 ```bash
 cd /opt/note-web/frontend
@@ -32,23 +47,9 @@ npm install
 npm run build
 ```
 
-Build output is `frontend/dist/`.
+Build output: `frontend/dist/` (gitignored).
 
-### 3. Copy build artifacts to backend static dir
-
-```bash
-cp -r /opt/note-web/frontend/dist/* /opt/note-web/backend/app/static/
-```
-
-`static/` is gitignored — this copies JS/CSS/images into the backend's serve directory.
-
-### 4. Copy seal.svg (Vite strips it from dist)
-
-```bash
-cp /opt/note-web/frontend/dist/seal.svg /opt/note-web/backend/app/static/seal.svg
-```
-
-### 5. Install backend dependencies
+### 3. Install backend dependencies
 
 ```bash
 cd /opt/note-web/backend
@@ -57,7 +58,7 @@ source .venv/bin/activate
 pip install -r app/requirements.txt
 ```
 
-### 6. Create systemd service
+### 4. Create systemd service
 
 ```bash
 cat > /etc/systemd/system/note-web.service << 'EOF'
@@ -72,8 +73,8 @@ WorkingDirectory=/opt/note-web
 Environment="NOTES_PATH=/root/notes"
 Environment="HOST=0.0.0.0"
 Environment="PORT=8082"
-Environment="ACCESS_TOKEN="
-ExecStart=/opt/note-web/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8082
+Environment="ACCESS_TOKEN=your_token_here"
+ExecStart=/opt/note-web/backend/.venv/bin/python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8082
 Restart=always
 
 [Install]
@@ -94,33 +95,24 @@ systemctl status note-web
 
 ## Updating
 
-### Pull latest code from GitHub
+### Pull latest code
 
 ```bash
-ssh -p 22 root@172.245.147.11 "cd /opt/note-web && git pull origin master"
+ssh root@172.245.147.11 "cd /opt/note-web && git pull origin master"
 ```
 
 ### Rebuild frontend if JS/CSS changed
 
 ```bash
-ssh -p 22 root@172.245.147.11 "cd /opt/note-web/frontend && npm install && npm run build"
-ssh -p 22 root@172.245.147.11 "cp -r /opt/note-web/frontend/dist/* /opt/note-web/backend/app/static/"
-ssh -p 22 root@172.245.147.11 "cp /opt/note-web/frontend/dist/seal.svg /opt/note-web/backend/app/static/seal.svg"
+ssh root@172.245.147.11 "cd /opt/note-web/frontend && npm install && npm run build"
 ```
+
+No copy step needed — `FRONTEND_DIST` points to `frontend/dist` directly.
 
 ### Restart service
 
 ```bash
-ssh -p 22 root@172.245.147.11 "systemctl restart note-web"
-```
-
-### Trigger cache rebuild (after migrating new HTML notes)
-
-```bash
-ssh -p 22 root@172.245.147.11
-TOKEN=""  # match your ACCESS_TOKEN config
-curl -X POST http://127.0.0.1:8082/api/cache/rebuild \
-  -H "Authorization: Bearer $TOKEN"
+ssh root@172.245.147.11 "systemctl restart note-web"
 ```
 
 ---
@@ -140,26 +132,62 @@ notes.cinnabar.ink {
 | Path | Purpose |
 |------|---------|
 | `/opt/note-web/` | Git repo |
-| `/opt/note-web/backend/app/static/` | Frontend build output (served at `/static/`) |
-| `/root/notes/` | HTML notes directory (symlink or actual) |
+| `/opt/note-web/frontend/dist/` | Vite build output (served directly) |
+| `/root/notes/` | HTML notes directory |
 | `/opt/note-web/backend/data/` | SQLite cache DB |
 | `/opt/note-web/.venv/` | Python venv (gitignored) |
-| `/opt/note-web/frontend/dist/` | Vite build output (gitignored) |
+
+---
+
+## Auth Architecture
+
+- **Bearer token**: Primary API credential (for agent/CLI access)
+  - Header: `Authorization: Bearer <token>`
+  - Env var: `ACCESS_TOKEN`
+- **Session cookie**: Browser login convenience
+  - Cookie name: `notes_session` (non-HttpOnly, JS-readable)
+  - TTL: 7 days
+  - Used for: Web UI session + img rewrite in iframe srcdoc
+- **Image auth**: `?session=<session_id>` query param
+  - Frontend rewrites `<img src="attachments/...">` → `/api/attachment/<path>?session=<session_id>`
+  - Backend validates via `verify_session()`
+- **No image_token separation**: Single session cookie covers both web session and image auth
+
+### Agent API Usage
+
+```bash
+# List files
+curl -H "Authorization: Bearer notes123" http://localhost:8082/api/files
+
+# Get note
+curl -H "Authorization: Bearer notes123" http://localhost:8082/api/file/04-learning/古代汉语/index.html
+
+# Trigger sync from TOS
+curl -X POST http://localhost:8082/api/sync/trigger -H "Authorization: Bearer notes123"
+```
 
 ---
 
 ## Troubleshooting
 
-### 500 on `/api/cache/rebuild`
-
-Check `extract_links_from_html()` — path resolution bug was fixed in `db81f39`.
-
 ### seal.svg 404
 
-`cp /opt/note-web/frontend/dist/seal.svg /opt/note-web/backend/app/static/seal.svg`
+Fixed in commit `c11412c`. `/seal.svg` route is defined in `backend/app/main.py`. Ensure `frontend/dist/seal.svg` exists after build (Vite copies `public/` to `dist/`).
 
-Vite's `public` dir only copies to `dist/`, not `backend/app/static/`.
+### /static/assets/*.js 404
 
-### `/static/assets/*.js` 404
+Vite uses content-hashed filenames. With direct `frontend/dist/` serving (no copy step), this is no longer an issue. Ensure `vite.config.ts` has `base: '/'`.
 
-Vite build uses content-hashed filenames. Always `cp -r frontend/dist/* backend/app/static/` after build.
+### 500 on API login
+
+Check that `ACCESS_TOKEN` env var is set in systemd service. Empty token allows any input to create a session.
+
+### Session expired immediately
+
+`SESSION_TTL_DAYS = 7` in `main.py`. Session store is in-memory — restarting the service clears all sessions.
+
+### Images return 401
+
+- Ensure `notes_session` cookie is set (check browser DevTools → Application → Cookies)
+- Ensure cookie is non-Httponly (set in `api_login_compat()`)
+- Check `verify_session()` is correctly validating the session_id
