@@ -25,7 +25,7 @@ See [`docs/deploy.md`](docs/deploy.md) for full deployment guide.
 ## Architecture
 
 - `frontend/` — React SPA (Vite build → `frontend/dist/`)
-- `backend/app/` — FastAPI backend + serves `static/` dir
+- `backend/app/` — FastAPI backend (serves `frontend/dist/` directly at `/`)
 - `backend/data/` — SQLite cache DB (link index, search data)
 - `notes/` — Static HTML files (gitignored, managed by migration pipeline)
 
