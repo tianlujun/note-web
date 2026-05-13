@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { FileTreeNode } from '@/lib/api'
 
+/** Strip .html extension for display — path is untouched */
+function displayName(name: string): string {
+  return name.endsWith('.html') ? name.slice(0, -5) : name
+}
+
 interface TreeItemProps {
   node: FileTreeNode
   depth: number
@@ -30,7 +35,7 @@ function TreeItem({ node, depth }: TreeItemProps) {
     if (isDir) {
       toggleExpand(node.path)
     } else {
-      openTab(node.path, node.name)
+      openTab(node.path, displayName(node.name))
     }
   }
 
@@ -52,7 +57,7 @@ function TreeItem({ node, depth }: TreeItemProps) {
         style={{ paddingLeft: `${paddingLeft}px` }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
-        aria-label={isDir ? `Directory ${node.name}` : `File ${node.name}`}
+        aria-label={isDir ? `Directory ${displayName(node.name)}` : `File ${displayName(node.name)}`}
       >
         {isDir && (
           <ChevronRight
@@ -67,7 +72,7 @@ function TreeItem({ node, depth }: TreeItemProps) {
         ) : (
           <File className="mr-2 h-4 w-4 shrink-0" />
         )}
-        <span className="truncate">{node.name}</span>
+        <span className="truncate">{displayName(node.name)}</span>
       </Button>
       {expanded && hasChildren && (
         <div>
