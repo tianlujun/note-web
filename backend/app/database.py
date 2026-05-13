@@ -28,7 +28,7 @@ def get_db_path() -> Path:
 
 def get_notes_path() -> Path:
     """Get the notes directory path from environment variable."""
-    notes_path = os.environ.get("NOTES_PATH", "/root/notes-mvp")
+    notes_path = os.environ.get("NOTES_PATH", "/root/notes")
     return Path(notes_path)
 
 

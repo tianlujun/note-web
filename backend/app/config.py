@@ -1,7 +1,7 @@
 import os
 
 # Path to the notes HTML directory (can be overridden via env)
-NOTES_PATH = os.environ.get("NOTES_PATH", "/root/notes-mvp")
+NOTES_PATH = os.environ.get("NOTES_PATH", "/root/notes")
 
 # Access token
 ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN", "")

@@ -33,7 +33,7 @@ async def sync_trigger(request: Request):
             database.log_sync("failed")
             return JSONResponse(status_code=500, content={"ok": False, "detail": stderr.decode()})
         database.incremental_cache_update()
-        return JSONResponse({"ok": True, "triggered_at": datetime.utcnow().isoformat()})
+        return JSONResponse({"ok": True, "triggered_at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
     except Exception as exc:
         database.log_sync("failed")
         return JSONResponse(status_code=500, content={"ok": False, "detail": str(exc)})
@@ -63,7 +63,7 @@ async def rebuild(request: Request):
         database.full_cache_rebuild()
     except Exception as exc:
         return JSONResponse(status_code=500, content={"ok": False, "step": "cache", "detail": str(exc)})
-    return JSONResponse({"ok": True, "triggered_at": datetime.utcnow().isoformat()})
+    return JSONResponse({"ok": True, "triggered_at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
 
 @router.post("/cache/rebuild")
 def cache_rebuild(request: Request):
