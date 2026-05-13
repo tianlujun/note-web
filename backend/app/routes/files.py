@@ -6,14 +6,17 @@ import re, os, mimetypes
 router = APIRouter(prefix="/api", tags=["files"])
 
 def _verify_any_auth(request: Request) -> bool:
-    from ..main import verify_token, verify_session, SESSION_COOKIE
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header[7:]
-        if token == os.environ.get("ACCESS_TOKEN", ""):
-            return True
+    from ..main import _auth_header_valid, verify_session, SESSION_COOKIE
+    # Bearer token
+    if _auth_header_valid(request):
+        return True
+    # Session cookie
     session_id = request.cookies.get(SESSION_COOKIE)
     if session_id and verify_session(session_id):
+        return True
+    # Session query param (for img tags in iframe srcdoc)
+    session_param = request.query_params.get("session")
+    if session_param and verify_session(session_param):
         return True
     return False
 
@@ -21,7 +24,7 @@ def _verify_any_auth(request: Request) -> bool:
 def api_attachment(request: Request, path: str):
     if not _verify_any_auth(request):
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-    root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+    root = Path(os.environ.get("NOTES_PATH", "/root/notes"))
     file_path = root / path
     try:
         file_path.resolve().relative_to(root.resolve())
@@ -35,7 +38,7 @@ def api_attachment(request: Request, path: str):
 @router.get("/files")
 def api_files():
     from .. import database
-    root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+    root = Path(os.environ.get("NOTES_PATH", "/root/notes"))
     if not root.exists():
         raise HTTPException(503, "Notes directory not mounted")
     if database.get_cache_valid():
@@ -50,7 +53,7 @@ def api_files():
 def api_link_index():
     from .. import database
     if not database.get_cache_valid():
-        root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+        root = Path(os.environ.get("NOTES_PATH", "/root/notes"))
         if root.exists():
             database.update_link_cache(root)
             database.set_cache_valid(True)
@@ -60,7 +63,7 @@ def api_link_index():
 def api_search(q: str = Query(..., min_length=1)):
     from .. import database
     if not database.get_cache_valid():
-        root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+        root = Path(os.environ.get("NOTES_PATH", "/root/notes"))
         if root.exists():
             database.rebuild_search_index(root)
             database.set_cache_valid(True)
@@ -74,7 +77,7 @@ def api_file(path: str):
         cached = database.get_file_content(path)
         if cached:
             return JSONResponse(cached)
-    root = Path(os.environ.get("NOTES_PATH", "/root/notes-mvp"))
+    root = Path(os.environ.get("NOTES_PATH", "/root/notes"))
     file_path = root / path
     try:
         file_path.resolve().relative_to(root.resolve())

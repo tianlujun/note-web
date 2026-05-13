@@ -19,7 +19,7 @@ async def sync_trigger(request: Request):
     if err:
         return err
     from .. import database
-    notes_path = os.environ.get("NOTES_PATH", "/root/notes-mvp")
+    notes_path = os.environ.get("NOTES_PATH", "/root/notes")
     cmd = ["rclone", "sync", "tos:tianlujun-default/notes", notes_path, "--quiet", "--timeout=300s", "--contimeout=60s"]
     try:
         proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)

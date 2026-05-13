@@ -33,6 +33,7 @@ export function ContentArea() {
       .then(async (data) => {
         if (!cancelled && iframeRef.current) {
           // Rewrite img src: relative paths -> /api/attachment/{path}?session=xxx
+          // notes_session is non-HttpOnly, readable by JS
           const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || '';
           const noteDir = activeTab.path.replace(/\/[^/]+$/, '');
           const processed = sessionId

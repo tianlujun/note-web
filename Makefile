@@ -4,10 +4,9 @@ NERD_HOST := root@172.245.147.11
 NERD_PATH := /opt/note-web
 
 build:
-	cd frontend && npm run build
+	cd $(NERD_PATH)/frontend && npm run build
 
 deploy: build
-	ssh $(NERD_HOST) 'cp -r $(NERD_PATH)/frontend/dist/* $(NERD_PATH)/backend/app/static/'
 	ssh $(NERD_HOST) 'systemctl restart note-web'
 
 restart:
