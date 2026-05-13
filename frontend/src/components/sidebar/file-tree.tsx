@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ChevronRight, File, Folder } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { ChevronRight, File, Folder, Copy } from 'lucide-react'
 import { useFileTreeStore } from '@/stores/file-tree-store'
 import { useTabStore } from '@/stores/tab-store'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,7 +13,7 @@ interface TreeItemProps {
 }
 
 function TreeItem({ node, depth }: TreeItemProps) {
-  const { toggleExpand, isExpanded } = useFileTreeStore()
+  const { toggleExpand, isExpanded, openContextMenu } = useFileTreeStore()
   const { openTab, tabs, activeTabId } = useTabStore()
   const [expanded, setExpanded] = useState(false)
 
@@ -34,6 +34,11 @@ function TreeItem({ node, depth }: TreeItemProps) {
     }
   }
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    openContextMenu(node, e.clientX, e.clientY)
+  }
+
   const paddingLeft = depth * 20 + 12
 
   return (
@@ -46,6 +51,7 @@ function TreeItem({ node, depth }: TreeItemProps) {
         )}
         style={{ paddingLeft: `${paddingLeft}px` }}
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
         aria-label={isDir ? `Directory ${node.name}` : `File ${node.name}`}
       >
         {isDir && (
@@ -70,6 +76,67 @@ function TreeItem({ node, depth }: TreeItemProps) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function ContextMenu() {
+  const { contextMenu, closeContextMenu } = useFileTreeStore()
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyRelativePath = useCallback(() => {
+    if (!contextMenu) return
+    const path = contextMenu.node.path
+    navigator.clipboard.writeText(path).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+    closeContextMenu()
+  }, [contextMenu, closeContextMenu])
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeContextMenu()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [closeContextMenu])
+
+  // Close on click outside
+  useEffect(() => {
+    if (!contextMenu) return
+    const handleClick = () => closeContextMenu()
+    const t = setTimeout(() => document.addEventListener('click', handleClick), 0)
+    return () => {
+      clearTimeout(t)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [contextMenu, closeContextMenu])
+
+  if (!contextMenu) return null
+
+  const menuStyle: React.CSSProperties = {
+    position: 'fixed',
+    left: Math.min(contextMenu.x, window.innerWidth - 200),
+    top: Math.min(contextMenu.y, window.innerHeight - 60),
+    zIndex: 9999,
+  }
+
+  return (
+    <div
+      className="absolute bg-background border rounded-lg shadow-lg py-1 min-w-[160px]"
+      style={menuStyle}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Button
+        variant="ghost"
+        className="w-full justify-start text-sm h-8 px-3"
+        onClick={handleCopyRelativePath}
+      >
+        <Copy className="mr-2 h-4 w-4" />
+        {copied ? 'Copied!' : 'Copy relative path'}
+      </Button>
     </div>
   )
 }
@@ -111,10 +178,11 @@ export function FileTree() {
   }
 
   return (
-    <div className="py-2">
+    <div className="relative py-2">
       {tree.map((node) => (
         <TreeItem key={node.path} node={node} depth={0} />
       ))}
+      <ContextMenu />
     </div>
   )
 }

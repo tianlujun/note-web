@@ -1,14 +1,23 @@
 import { create } from 'zustand'
 import type { FileTreeNode } from '@/lib/api'
 
+interface ContextMenu {
+  node: FileTreeNode
+  x: number
+  y: number
+}
+
 interface FileTreeState {
   tree: FileTreeNode[]
   isLoading: boolean
   error: string | null
   expandedPaths: Set<string>
+  contextMenu: ContextMenu | null
   fetchTree: () => Promise<void>
   toggleExpand: (path: string) => void
   isExpanded: (path: string) => boolean
+  openContextMenu: (node: FileTreeNode, x: number, y: number) => void
+  closeContextMenu: () => void
 }
 
 export const useFileTreeStore = create<FileTreeState>()((set, get) => ({
@@ -16,6 +25,7 @@ export const useFileTreeStore = create<FileTreeState>()((set, get) => ({
   isLoading: false,
   error: null,
   expandedPaths: new Set(),
+  contextMenu: null,
 
   fetchTree: async () => {
     set({ isLoading: true, error: null })
@@ -42,5 +52,13 @@ export const useFileTreeStore = create<FileTreeState>()((set, get) => ({
 
   isExpanded: (path: string) => {
     return get().expandedPaths.has(path)
+  },
+
+  openContextMenu: (node: FileTreeNode, x: number, y: number) => {
+    set({ contextMenu: { node, x, y } })
+  },
+
+  closeContextMenu: () => {
+    set({ contextMenu: null })
   },
 }))
