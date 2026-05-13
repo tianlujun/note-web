@@ -145,7 +145,7 @@ export function Sidebar({ onOpenGraph }: SidebarProps) {
       >
         {sidebarContent}
         <div
-          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-accent/50 active:bg-accent/70 transition-colors"
+          className="absolute right-0 top-0 h-full w-px cursor-col-resize hover:border-r-2 hover:border-accent/60 transition-colors"
           onMouseDown={handleMouseDown}
           role="separator"
           aria-orientation="vertical"
@@ -166,7 +166,7 @@ export function Sidebar({ onOpenGraph }: SidebarProps) {
           >
             {sidebarContent}
             <div
-              className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-accent/50 active:bg-accent/70 transition-colors"
+              className="absolute right-0 top-0 h-full w-px cursor-col-resize hover:border-r-2 hover:border-accent/60 transition-colors"
               onMouseDown={handleMouseDown}
               role="separator"
               aria-orientation="vertical"
