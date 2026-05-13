@@ -14,17 +14,29 @@ def _require_bearer(request: Request):
     return None
 
 def _do_rebuild():
-    # Use os.fork+setsid to fully detach, then exec rclone in the child
+    """Fork a grandchild that runs rclone then cache rebuild, fully detached."""
     pid = os.fork()
-    if pid == 0:
-        # Child: detach from parent env
-        os.setsid()
-        os.chdir("/")
-        os.close(0)
-        os.open(os.devnull, os.O_RDWR)  # stdin -> /dev/null
-        os.dup2(0, 1)  # stdout -> /dev/null
-        os.dup2(0, 2)  # stderr -> /dev/null
+    if pid > 0:
+        # Parent: log and return immediately
+        with open("/var/log/note-web-rebuild.log", "a") as f:
+            f.write(f"[{datetime.datetime.now(datetime.timezone.utc).isoformat()}] "
+                     f"rebuild forked, pid={pid}\n")
+        return
 
+    # Grandchild: become daemon
+    os.setsid()
+    os.chdir("/")
+    # Redirect stdin/stdout/stderr to /dev/null
+    fd = os.open(os.devnull, os.O_RDWR)
+    os.dup2(fd, 0)
+    os.dup2(fd, 1)
+    os.dup2(fd, 2)
+    if fd > 2:
+        os.close(fd)
+
+    # Run rclone sync
+    rclone_pid = os.fork()
+    if rclone_pid == 0:
         os.execvp("rclone", [
             "rclone", "sync",
             "tos:tianlujun-default/notes", "/root/notes",
@@ -32,24 +44,26 @@ def _do_rebuild():
         ])
         os._exit(1)
 
-    # Parent: log and return immediately
-    with open("/var/log/note-web-rebuild.log", "a") as f:
-        f.write(f"[{datetime.datetime.now(datetime.timezone.utc).isoformat()}] "
-                 f"rebuild triggered, rclone pid={pid}\n")
+    # Wait for rclone
+    _, status = os.waitpid(rclone_pid, 0)
+    rclone_ok = os.WEXITSTATUS(status) == 0
 
-    # Also spawn a background thread to call full_cache_rebuild after a delay
-    def _rebuild_cache():
-        import time
-        time.sleep(10)  # give rclone time to finish
-        import sys
-        sys.path.insert(0, "/opt/note-web/backend/app")
-        from database import full_cache_rebuild
-        full_cache_rebuild()
+    if rclone_ok:
+        # Rebuild cache
+        db_pid = os.fork()
+        if db_pid == 0:
+            os.execvp("/opt/note-web/.venv/bin/python", [
+                "/opt/note-web/.venv/bin/python", "-c",
+                "import sys; sys.path.insert(0,'/opt/note-web/backend/app'); "
+                "from database import full_cache_rebuild; full_cache_rebuild()"
+            ])
+            os._exit(1)
+        os.waitpid(db_pid, 0)
         with open("/var/log/note-web-rebuild.log", "a") as f:
-            f.write(f"[{datetime.datetime.now(datetime.timezone.utc).isoformat()}] cache rebuild done\n")
+            f.write(f"[{datetime.datetime.now(datetime.timezone.utc).isoformat()}] "
+                     f"rclone+cache done\n")
 
-    t = threading.Thread(target=_rebuild_cache, daemon=True)
-    t.start()
+    os._exit(0)
 
 @router.post("/rebuild")
 def rebuild(request: Request):
