@@ -134,21 +134,33 @@ export function InkSplatter({ containerRef }: { containerRef?: React.RefObject<H
           position: fixed;
           pointer-events: none;
           z-index: 9999;
-          animation: ink-appear 2.5s ease-out forwards;
+          animation: ink-spread 2.5s ease-out forwards;
         }
 
         .ink-blob-inner {
-          background: radial-gradient(ellipse at 45% 40%,
-            rgba(197, 62, 62, 0.4) 0%,
-            rgba(197, 62, 62, 0.2) 50%,
-            transparent 80%
+          background: radial-gradient(ellipse at center,
+            rgba(197, 62, 62, 0.6) 0%,
+            rgba(197, 62, 62, 0.35) 30%,
+            rgba(197, 62, 62, 0.1) 60%,
+            transparent 100%
           );
+          background-size: 100% 100%;
+          background-position: center;
         }
 
-        @keyframes ink-appear {
-          0% { opacity: 0; }
-          8% { opacity: 0.5; }
-          100% { opacity: 0; }
+        @keyframes ink-spread {
+          0% {
+            opacity: 0;
+            background-size: 30% 30%;
+          }
+          5% {
+            opacity: 0.7;
+            background-size: 60% 60%;
+          }
+          100% {
+            opacity: 0;
+            background-size: 180% 180%;
+          }
         }
       `}</style>
       {blobs.map((blob) => (
