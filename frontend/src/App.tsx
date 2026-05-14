@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { LoginPage } from '@/components/login-page'
 import { AppShell } from '@/components/app-shell'
+import { InkSplatter } from '@/components/ink-splatter'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 
 function AppContent() {
@@ -22,10 +23,20 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage />
+    return (
+      <>
+        <LoginPage />
+        <InkSplatter />
+      </>
+    )
   }
 
-  return <AppShell />
+  return (
+    <>
+      <AppShell />
+      <InkSplatter />
+    </>
+  )
 }
 
 export default AppContent
