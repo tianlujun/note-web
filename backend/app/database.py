@@ -717,25 +717,36 @@ def incremental_cache_update():
     """Perform incremental cache update.
 
     Compares file modification times and only updates changed files.
+    Removes deleted files from DB before processing changes.
     """
     notes_path = get_notes_path()
     if not notes_path.exists():
         return
 
     start_time = time.time()
+
+    # Collect all current file paths and detect changes in one pass
+    current_paths: dict[str, float] = {}
     changed_files = []
 
-    # Find files that have changed since last sync
     for p in notes_path.rglob("*.html"):
         if p.name.startswith("_"):
             continue
-
         rel_path = p.relative_to(notes_path).as_posix()
+        current_paths[rel_path] = p.stat().st_mtime
         cached_mtime = get_file_modified_at(rel_path)
-        current_mtime = p.stat().st_mtime
-
-        if cached_mtime is None or current_mtime > cached_mtime:
+        if cached_mtime is None or p.stat().st_mtime > cached_mtime:
             changed_files.append(rel_path)
+
+    # Remove deleted files from DB (files in DB but not on disk)
+    with get_db() as db:
+        tracked_paths = {row["path"] for row in db.execute("SELECT path FROM files")}
+        deleted_paths = tracked_paths - set(current_paths.keys())
+        if deleted_paths:
+            placeholders = ",".join("?" * len(deleted_paths))
+            db.execute(f"DELETE FROM files WHERE path IN ({placeholders})", tuple(deleted_paths))
+            db.execute(f"DELETE FROM search_index WHERE path IN ({placeholders})", tuple(deleted_paths))
+            db.commit()
 
     if changed_files:
         update_tree_cache(notes_path, full_rebuild=False)
