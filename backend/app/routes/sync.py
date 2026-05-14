@@ -15,11 +15,19 @@ def _require_bearer(request: Request):
 
 def _do_rebuild():
     """Run rclone sync then incremental cache update, fully detached."""
+    data_path = os.environ.get("DATA_PATH", "/opt/note-web/backend/data")
+    notes_path = os.environ.get("NOTES_PATH", "/root/notes")
     pid = os.fork()
     if pid > 0:
-        with open("/var/log/note-web-rebuild.log", "a") as f:
+        with open(f"{data_path}/rebuild.log", "a") as f:
             f.write(f"[{datetime.datetime.now(datetime.timezone.utc).isoformat()}] "
                      f"rebuild forked, pid={pid}\n")
+        try:
+            import asyncio
+            from ..database import notify_clients
+            asyncio.run(notify_clients())
+        except Exception:
+            pass
         return
 
     os.setsid()
@@ -35,7 +43,7 @@ def _do_rebuild():
     if rclone_pid == 0:
         os.execvp("rclone", [
             "rclone", "sync",
-            "tos:tianlujun-default/notes", "/root/notes",
+            "tos:tianlujun-default/notes", notes_path,
             "--quiet", "--timeout=300s", "--contimeout=60s"
         ])
         os._exit(1)
@@ -54,7 +62,7 @@ def _do_rebuild():
             ])
             os._exit(1)
         os.waitpid(db_pid, 0)
-        with open("/var/log/note-web-rebuild.log", "a") as f:
+        with open(f"{data_path}/rebuild.log", "a") as f:
             f.write(f"[{datetime.datetime.now(datetime.timezone.utc).isoformat()}] "
                      f"rclone+incremental-cache done\n")
 

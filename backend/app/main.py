@@ -65,6 +65,7 @@ async def spa_middleware(request: Request, call_next):
         or path == "/api/logout"
         or path == "/api/auth/login"
         or path == "/api/auth/logout"
+        or path == "/api/events"
     ):
         return await call_next(request)
 

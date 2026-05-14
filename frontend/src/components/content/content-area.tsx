@@ -57,12 +57,16 @@ export function ContentArea() {
     const path = activeTab.path
     const cached = useTabStore.getState().getCachedContent(path)
 
+    console.log('[ContentArea] effect triggered', { path, hasCached: !!cached, activeTabId: activeTab.id })
+
     if (cached) {
+      console.log('[ContentArea] using cached content for', path)
       const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || ''
       renderContent(iframeRef, cached.content, cached.noteDir, sessionId)
       return
     }
 
+    console.log('[ContentArea] cache MISS, fetching from API:', path)
     setIsLoading(true)
     setError(null)
 
@@ -73,6 +77,7 @@ export function ContentArea() {
         const noteDir = path.replace(/\/[^/]+$/, '')
         const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || ''
 
+        console.log('[ContentArea] API returned, caching:', path)
         useTabStore.getState().setCachedContent(path, {
           path,
           title: data.title,

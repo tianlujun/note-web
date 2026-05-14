@@ -66,13 +66,17 @@ export const useTabStore = create<TabState>()((set, get) => ({
   },
 
   getCachedContent: (path: string) => {
-    return get().contentCache.get(path)
+    const result = get().contentCache.get(path)
+    console.log('[TabStore] getCachedContent:', path, result ? 'HIT' : 'MISS')
+    return result
   },
 
   setCachedContent: (path: string, data: CachedContent) => {
+    console.log('[TabStore] setCachedContent called:', path)
     set((state) => {
       const newCache = new Map(state.contentCache)
       newCache.set(path, data)
+      console.log('[TabStore] cache now has:', Array.from(newCache.keys()))
       return { contentCache: newCache }
     })
   },
