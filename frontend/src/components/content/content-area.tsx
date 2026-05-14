@@ -45,8 +45,7 @@ function renderContent(iframeRef: React.RefObject<HTMLIFrameElement | null>, con
 }
 
 export function ContentArea() {
-  const { getActiveTab, getCachedContent, setCachedContent, openTab } = useTabStore()
-  const activeTab = getActiveTab()
+  const activeTab = useTabStore((s) => s.tabs.find((t) => t.id === s.activeTabId))
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +55,7 @@ export function ContentArea() {
 
     let cancelled = false
     const path = activeTab.path
-    const cached = getCachedContent(path)
+    const cached = useTabStore.getState().getCachedContent(path)
 
     if (cached) {
       const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || ''
@@ -74,7 +73,7 @@ export function ContentArea() {
         const noteDir = path.replace(/\/[^/]+$/, '')
         const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || ''
 
-        setCachedContent(path, {
+        useTabStore.getState().setCachedContent(path, {
           path,
           title: data.title,
           content: data.content,
@@ -92,19 +91,19 @@ export function ContentArea() {
       })
 
     return () => { cancelled = true }
-  }, [activeTab?.path, getCachedContent, setCachedContent])
+  }, [activeTab?.path])
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'note-link' && event.data.path) {
         const cleanPath = event.data.path.replace(/^\//, '')
         const title = cleanPath.split('/').pop()?.replace(/\.html$/, '') || cleanPath
-        openTab(cleanPath, title)
+        useTabStore.getState().openTab(cleanPath, title)
       }
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [openTab])
+  }, [])
 
   if (!activeTab) {
     return (
