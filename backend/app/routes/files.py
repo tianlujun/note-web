@@ -23,19 +23,28 @@ def _verify_any_auth(request: Request) -> bool:
 def _get_root():
     return Path(os.environ.get("NOTES_PATH", "/root/notes"))
 
+def _safe_path(user_path: str) -> Path:
+    """Resolve user_path and verify it stays within root. Raises HTTPException on traversal."""
+    root = _get_root().resolve()
+    # Construct and resolve in one step — single syscalls, no TOCTOU window
+    joined = (root / user_path).resolve()
+    # is_relative_to() checks containment after resolve; raises ValueError if outside root
+    if not joined.is_relative_to(root):
+        raise HTTPException(403, "Access denied")
+    return joined
+
 @router.get("/ls/{path:path}")
 def api_ls(request: Request, path: str):
     """List directory contents (files and subdirs) for a given path."""
     if not _verify_any_auth(request):
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-    root = _get_root()
-    dir_path = root / path
     try:
-        dir_path.resolve().relative_to(root.resolve())
-    except ValueError:
-        raise HTTPException(403, "Access denied")
+        dir_path = _safe_path(path)
+    except HTTPException:
+        raise
     if not dir_path.is_dir():
         raise HTTPException(404, "Directory not found")
+    root = _get_root().resolve()
     entries = []
     for p in sorted(dir_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
         if p.is_dir():
@@ -48,12 +57,10 @@ def api_ls(request: Request, path: str):
 def api_attachment(request: Request, path: str):
     if not _verify_any_auth(request):
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-    root = _get_root()
-    file_path = root / path
     try:
-        file_path.resolve().relative_to(root.resolve())
-    except ValueError:
-        raise HTTPException(403, "Access denied")
+        file_path = _safe_path(path)
+    except HTTPException:
+        raise
     if not file_path.is_file():
         raise HTTPException(404, "File not found")
     media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
@@ -101,12 +108,10 @@ def api_file(path: str):
         cached = database.get_file_content(path)
         if cached:
             return JSONResponse(cached)
-    root = _get_root()
-    file_path = root / path
     try:
-        file_path.resolve().relative_to(root.resolve())
-    except ValueError:
-        raise HTTPException(403, "Access denied")
+        file_path = _safe_path(path)
+    except HTTPException:
+        raise
     if not file_path.is_file():
         raise HTTPException(404, "File not found")
     content = file_path.read_text(encoding="utf-8")
