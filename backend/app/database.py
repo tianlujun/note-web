@@ -195,7 +195,7 @@ def get_file_tree() -> list:
         List of file/directory nodes in tree structure.
     """
     with get_db() as db:
-        rows = db.execute("SELECT * FROM files ORDER BY type DESC, name ASC").fetchall()
+        rows = db.execute("SELECT * FROM files ORDER BY type ASC, name ASC").fetchall()
 
         # Build tree structure from flat list
         nodes = {}
