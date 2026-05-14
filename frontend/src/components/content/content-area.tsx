@@ -3,8 +3,49 @@ import { useTabStore } from '@/stores/tab-store'
 import { api } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
 
+function renderContent(iframeRef: React.RefObject<HTMLIFrameElement | null>, content: string, noteDir: string, sessionId: string) {
+  let processed = content
+  if (sessionId) {
+    processed = processed.replace(
+      /<img([^>]*)src="(attachments\/[^"]+)"/g,
+      `<img$1src="/api/attachment/${noteDir ? noteDir + '/' : ''}$2?session=${sessionId}"`
+    )
+  }
+
+  const linkScript = `<script>
+    var __noteDir = ${JSON.stringify(noteDir)};
+    document.addEventListener('click', function(e) {
+      var a = e.target.closest ? e.target.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('http') || href.startsWith('mailto:')) return;
+      e.preventDefault();
+      var resolved;
+      if (href.startsWith('/')) {
+        resolved = href.replace(/^\\//, '');
+      } else if (href.startsWith('./')) {
+        var base = 'https://vault/' + (__noteDir ? __noteDir + '/' : '');
+        resolved = new URL(href, base).pathname.replace(/^\\//, '');
+      } else if (href.startsWith('../')) {
+        var base = 'https://vault/' + (__noteDir ? __noteDir + '/' : '');
+        resolved = new URL(href, base).pathname.replace(/^\\//, '');
+      } else if (href.includes('/')) {
+        resolved = href;
+      } else {
+        resolved = __noteDir ? __noteDir + '/' + href : href;
+      }
+      window.parent.postMessage({ type: 'note-link', path: resolved }, '*');
+    });
+  <\/script>`
+
+  const wrapped = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_parent"></head><body>${processed}</body></html>`
+  if (iframeRef.current) {
+    iframeRef.current.srcdoc = linkScript + wrapped
+  }
+}
+
 export function ContentArea() {
-  const { getActiveTab, openTab } = useTabStore()
+  const { getActiveTab, getCachedContent, setCachedContent, openTab } = useTabStore()
   const activeTab = getActiveTab()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -14,63 +55,33 @@ export function ContentArea() {
     if (!activeTab) return
 
     let cancelled = false
+    const path = activeTab.path
+    const cached = getCachedContent(path)
+
+    if (cached) {
+      const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || ''
+      renderContent(iframeRef, cached.content, cached.noteDir, sessionId)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
-    api.getFile(activeTab.path)
+    api.getFile(path)
       .then(async (data) => {
         if (cancelled || !iframeRef.current) return
 
-        // noteDir = directory of current note, used as base for relative link resolution
-        // e.g. "02-projects/website_intelligence/_index.html" → noteDir = "02-projects/website_intelligence"
-        //       "_index.html" (root) → noteDir = ""
-        const noteDir = activeTab.path.replace(/\/[^/]+$/, '')
+        const noteDir = path.replace(/\/[^/]+$/, '')
         const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || ''
 
-        // Rewrite img src with session param for auth
-        let processed = data.content
-        if (sessionId) {
-          processed = processed.replace(
-            /<img([^>]*)src="(attachments\/[^"]+)"/g,
-            `<img$1src="/api/attachment/${noteDir ? noteDir + '/' : ''}$2?session=${sessionId}"`
-          )
-        }
+        setCachedContent(path, {
+          path,
+          title: data.title,
+          content: data.content,
+          noteDir,
+        })
 
-        // Inject click handler that resolves relative hrefs and sends to parent
-        // noteDir is captured from closure — safe because it's a JS string, not serialized
-        const linkScript = `<script>
-          var __noteDir = ${JSON.stringify(noteDir)};
-          document.addEventListener('click', function(e) {
-            var a = e.target.closest ? e.target.closest('a') : null;
-            if (!a) return;
-            var href = a.getAttribute('href');
-            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('http') || href.startsWith('mailto:')) return;
-            e.preventDefault();
-            var resolved;
-            if (href.startsWith('/')) {
-              // Absolute vault path: strip leading /
-              resolved = href.replace(/^\\//, '');
-            } else if (href.startsWith('./')) {
-              // Relative: resolve from noteDir using URL API
-              var base = 'https://vault/' + (__noteDir ? __noteDir + '/' : '');
-              resolved = new URL(href, base).pathname.replace(/^\\//, '');
-            } else if (href.startsWith('../')) {
-              // Relative with upward traversal: resolve from noteDir
-              var base = 'https://vault/' + (__noteDir ? __noteDir + '/' : '');
-              resolved = new URL(href, base).pathname.replace(/^\\//, '');
-            } else if (href.includes('/')) {
-              // Bare path with / → treat as vault-relative (no noteDir prefix)
-              resolved = href;
-            } else {
-              // Bare path without / → same-directory file
-              resolved = __noteDir ? __noteDir + '/' + href : href;
-            }
-            window.parent.postMessage({ type: 'note-link', path: resolved }, '*');
-          });
-        <\/script>`
-
-        const wrapped = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_parent"></head><body>${processed}</body></html>`
-        iframeRef.current.srcdoc = linkScript + wrapped
+        renderContent(iframeRef, data.content, noteDir, sessionId)
         setIsLoading(false)
       })
       .catch((e) => {
@@ -81,7 +92,7 @@ export function ContentArea() {
       })
 
     return () => { cancelled = true }
-  }, [activeTab?.path])
+  }, [activeTab?.path, getCachedContent, setCachedContent])
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

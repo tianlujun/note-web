@@ -2,6 +2,7 @@
 SQLite Database Module for note-web
 Provides caching layer for file tree, search, and link graph.
 """
+import asyncio
 import json
 import os
 import re
@@ -630,6 +631,29 @@ def get_link_index() -> dict:
         }
 
 
+# ─── SSE Client Management ──────────────────────────────────────────────────────
+
+sse_clients: list = []
+
+def add_sse_client(queue: asyncio.Queue):
+    """Register a new SSE client."""
+    sse_clients.append(queue)
+
+def remove_sse_client(queue: asyncio.Queue):
+    """Unregister an SSE client."""
+    if queue in sse_clients:
+        sse_clients.remove(queue)
+
+def notify_clients():
+    """Broadcast refresh event to all connected SSE clients."""
+    for client in sse_clients[:]:  # Copy list to avoid mutation during iteration
+        try:
+            client.put_nowait("refresh")
+        except Exception:
+            # Client disconnected or queue full - remove it
+            remove_sse_client(client)
+
+
 # ─── Sync and Cache Management ──────────────────────────────────────────────────
 
 def log_sync(status: str, files_updated: int = 0, duration_ms: int = 0):
@@ -707,6 +731,7 @@ def full_cache_rebuild():
             file_count = db.execute("SELECT COUNT(*) as count FROM files").fetchone()["count"]
 
         log_sync("success", files_updated=file_count, duration_ms=duration_ms)
+        notify_clients()
 
     except Exception as e:
         log_sync("failed")
@@ -755,5 +780,6 @@ def incremental_cache_update():
 
     duration_ms = int((time.time() - start_time) * 1000)
     log_sync("success", files_updated=len(changed_files), duration_ms=duration_ms)
+    notify_clients()
 
     return len(changed_files)
