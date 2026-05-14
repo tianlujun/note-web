@@ -1,6 +1,5 @@
 """
-Notes Web App — FastAPI backend (NERD fixed version)
-Fixed: Critical 1 (frontend/dist directly), Critical 2 (two cookies), string quotes restored
+Notes Web App — FastAPI backend
 """
 import os, time, secrets
 from pathlib import Path
@@ -11,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.app import database
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-ACCESS_TOKEN=os.environ.get("ACCESS_TOKEN", "")
+ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN", "")
 
 # ─── Session store ────────────────────────────────────────────────────────────
 SESSION_TTL_DAYS = 7
@@ -48,11 +47,10 @@ def _auth_header_valid(request: Request) -> bool:
 
 SESSION_COOKIE = "notes_session"
 
-# ─── Serve frontend/dist directly at root (Critical 1 fix) ─────────────────────
-# No more backend/app/static layer — eliminates hash sync problem
+# ─── Serve frontend/dist directly at root ─────────────────────────────────────
 FRONTEND_DIST = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
-# ─── FastAPI app ────────────────────────────────────────────────────────────────
+# ─── FastAPI app ───────────────────────────────────────────────────────────────
 app = FastAPI()
 
 @app.middleware("http")
@@ -75,7 +73,7 @@ async def spa_middleware(request: Request, call_next):
         clean_expired_sessions()
         return await call_next(request)
 
-    # Check session cookie (HttpOnly)
+    # Check session cookie
     session_id = request.cookies.get(SESSION_COOKIE)
     if verify_session(session_id):
         clean_expired_sessions()
@@ -111,10 +109,9 @@ app.include_router(auth.router)
 app.include_router(files.router)
 app.include_router(sync.router)
 
-# ─── Legacy API compat (frontend uses /api/login, /api/logout, /api/me) ─────────
+# ─── Legacy API compat ────────────────────────────────────────────────────────
 @app.get("/api/me")
 async def api_me_compat(request: Request):
-    creds = request.headers.get("Authorization", "")
     session_id = request.cookies.get(SESSION_COOKIE)
     if _auth_header_valid(request) or verify_session(session_id):
         return {"authenticated": True}
@@ -140,7 +137,7 @@ async def favicon():
 async def seal():
     return FileResponse(FRONTEND_DIST / "seal.svg", media_type="image/svg+xml")
 
-# ─── Catch-all ────────────────────────────────────────────────────────────────
+# ─── Catch-all → SPA ──────────────────────────────────────────────────────────
 @app.get("/{path:path}")
 def catch_all(path: str):
-    raise HTTPException(404)
+    return HTMLResponse((FRONTEND_DIST / "index.html").read_text(), status_code=200)

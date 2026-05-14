@@ -3,18 +3,6 @@ import { useTabStore } from '@/stores/tab-store'
 import { api } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const LINK_INTERCEPT_SCRIPT = `<script>
-  document.addEventListener('click', function(e) {
-    var a = e.target.closest ? e.target.closest('a') : null;
-    if (!a) return;
-    var href = a.getAttribute('href');
-    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:')) return;
-    e.preventDefault();
-    window.parent.postMessage({ type: 'note-link', path: href }, '*');
-  });
-<\/script>`
-
 export function ContentArea() {
   const { getActiveTab, openTab } = useTabStore()
   const activeTab = getActiveTab()
@@ -31,20 +19,59 @@ export function ContentArea() {
 
     api.getFile(activeTab.path)
       .then(async (data) => {
-        if (!cancelled && iframeRef.current) {
-          // Rewrite img src: relative paths -> /api/attachment/{path}?session=xxx
-          // notes_session is non-HttpOnly, readable by JS
-          const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || '';
-          const noteDir = activeTab.path.replace(/\/[^/]+$/, '');
-          const processed = sessionId
-            ? data.content.replace(
-                /<img([^>]*)src="(attachments\/[^"]+)"/g,
-                `<img$1src="/api/attachment/${noteDir}/$2?session=${sessionId}"`
-              )
-            : data.content;
-          iframeRef.current.srcdoc = LINK_INTERCEPT_SCRIPT + processed;
-          setIsLoading(false);
+        if (cancelled || !iframeRef.current) return
+
+        // noteDir = directory of current note, used as base for relative link resolution
+        // e.g. "02-projects/website_intelligence/_index.html" → noteDir = "02-projects/website_intelligence"
+        //       "_index.html" (root) → noteDir = ""
+        const noteDir = activeTab.path.replace(/\/[^/]+$/, '')
+        const sessionId = document.cookie.match(/notes_session=([^;]+)/)?.[1] || ''
+
+        // Rewrite img src with session param for auth
+        let processed = data.content
+        if (sessionId) {
+          processed = processed.replace(
+            /<img([^>]*)src="(attachments\/[^"]+)"/g,
+            `<img$1src="/api/attachment/${noteDir ? noteDir + '/' : ''}$2?session=${sessionId}"`
+          )
         }
+
+        // Inject click handler that resolves relative hrefs and sends to parent
+        // noteDir is captured from closure — safe because it's a JS string, not serialized
+        const linkScript = `<script>
+          var __noteDir = ${JSON.stringify(noteDir)};
+          document.addEventListener('click', function(e) {
+            var a = e.target.closest ? e.target.closest('a') : null;
+            if (!a) return;
+            var href = a.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('http') || href.startsWith('mailto:')) return;
+            e.preventDefault();
+            var resolved;
+            if (href.startsWith('/')) {
+              // Absolute vault path: strip leading /
+              resolved = href.replace(/^\\//, '');
+            } else if (href.startsWith('./')) {
+              // Relative: resolve from noteDir using URL API
+              var base = 'https://vault/' + (__noteDir ? __noteDir + '/' : '');
+              resolved = new URL(href, base).pathname.replace(/^\\//, '');
+            } else if (href.startsWith('../')) {
+              // Relative with upward traversal: resolve from noteDir
+              var base = 'https://vault/' + (__noteDir ? __noteDir + '/' : '');
+              resolved = new URL(href, base).pathname.replace(/^\\//, '');
+            } else if (href.includes('/')) {
+              // Bare path with / → treat as vault-relative (no noteDir prefix)
+              resolved = href;
+            } else {
+              // Bare path without / → same-directory file
+              resolved = __noteDir ? __noteDir + '/' + href : href;
+            }
+            window.parent.postMessage({ type: 'note-link', path: resolved }, '*');
+          });
+        <\/script>`
+
+        const wrapped = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_parent"></head><body>${processed}</body></html>`
+        iframeRef.current.srcdoc = linkScript + wrapped
+        setIsLoading(false)
       })
       .catch((e) => {
         if (!cancelled) {
@@ -53,23 +80,17 @@ export function ContentArea() {
         }
       })
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [activeTab?.path])
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'note-link') {
-        const path = event.data.path
-        if (path) {
-          const cleanPath = path.replace(/^\//, '')
-          const title = cleanPath.split('/').pop() || cleanPath
-          openTab(cleanPath, title)
-        }
+      if (event.data?.type === 'note-link' && event.data.path) {
+        const cleanPath = event.data.path.replace(/^\//, '')
+        const title = cleanPath.split('/').pop()?.replace(/\.html$/, '') || cleanPath
+        openTab(cleanPath, title)
       }
     }
-
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
   }, [openTab])
@@ -96,7 +117,7 @@ export function ContentArea() {
       <iframe
         ref={iframeRef}
         className="h-full w-full border-none bg-background"
-        sandbox="allow-scripts allow-top-navigation-by-user-activation"
+        sandbox="allow-scripts allow-same-origin"
         title={activeTab?.title || 'Note content'}
       />
       {isLoading && (
